@@ -1,0 +1,82 @@
+"""Serviço de Visão Geral / Dashboard (US4 parceiro / RF-021 gestor). data-model §3.
+
+Métricas + série mensal sobre o dataset VÁLIDO escopado, recortado por um seletor de tempo
+(toggle ano inteiro / meses específicos do ano — RF-019). Como `filtra_por_escopo` já ignora
+o filtro para o gestor, o mesmo serviço atende os dois papéis (gestor = somatório global).
+"""
+
+from collections import defaultdict
+from datetime import date
+from decimal import Decimal
+
+from app.domain.filtros.engine import FiltroAplicado
+from app.domain.filtros.engine import aplica as aplica_filtros
+from app.domain.models import AppUser, Solicitacao
+from app.domain.scope import filtra_por_escopo
+from app.domain.status import STATUS_PAGO
+from app.services.serialize import money_str
+
+
+def _ano_mes(s: Solicitacao) -> tuple[int, int]:
+    """(ano, mês) de originação. Usa `mes_originacao` (`mm/aaaa`); senão deriva de `data_pedido`."""
+    if s.mes_originacao and "/" in s.mes_originacao:
+        mm, aaaa = s.mes_originacao.split("/", 1)
+        return int(aaaa.strip()), int(mm.strip())
+    return s.data_pedido.year, s.data_pedido.month
+
+
+def overview(
+    validas: list[Solicitacao],
+    user: AppUser,
+    ano: int | None = None,
+    meses: list[int] | None = None,
+    filtros: list[FiltroAplicado] | None = None,
+    hoje: date | None = None,
+) -> dict:
+    """Cards + série mensal recortados pelo seletor de tempo (ano / meses).
+
+    Escopo R-001 primeiro, depois filtros dinâmicos (chips) e, por fim, o recorte temporal:
+    apenas solicitações cuja originação caia no `ano`; se `meses` for informado, apenas nesses
+    meses (toggle "por mês"); vazio/None = ano inteiro. Cards e série refletem o recorte.
+    """
+    hoje = hoje or date.today()
+    ano_ref = ano if ano is not None else hoje.year
+    meses_sel = set(meses) if meses else None  # None = ano inteiro
+
+    escopadas = aplica_filtros(filtra_por_escopo(validas, user), filtros or [])
+    anos_disponiveis = sorted({_ano_mes(s)[0] for s in escopadas}, reverse=True)
+    no_recorte = [
+        s
+        for s in escopadas
+        if (am := _ano_mes(s))[0] == ano_ref and (meses_sel is None or am[1] in meses_sel)
+    ]
+
+    valor_total = sum((s.valor for s in no_recorte), Decimal("0"))
+    total_cashback = sum((s.cashback for s in no_recorte), Decimal("0"))
+    pagas = sum(1 for s in no_recorte if s.status == STATUS_PAGO)
+    medicos = {s.cliente for s in no_recorte}
+
+    # Ticket Médio (RF-019b): Originação Total ÷ médicos distintos = média dos totais por médico.
+    ticket_medio = valor_total / len(medicos) if medicos else Decimal("0")
+
+    # Série mensal dentro do recorte (RF-020).
+    por_mes: dict[str, Decimal] = defaultdict(lambda: Decimal("0"))
+    for s in no_recorte:
+        ano_s, mes_s = _ano_mes(s)
+        por_mes[f"{ano_s:04d}-{mes_s:02d}"] += s.valor
+    serie = [{"mes": m, "valor": money_str(v)} for m, v in sorted(por_mes.items())]
+
+    return {
+        "cards": {
+            "total_solicitacoes": len(no_recorte),
+            "valor_total": money_str(valor_total),
+            "total_cashback": money_str(total_cashback),
+            "ticket_medio": money_str(ticket_medio),
+            "em_aberto": len(no_recorte) - pagas,
+            "pagas": pagas,
+            "medicos_impactados": len(medicos),
+        },
+        "serie_mensal": serie,
+        "ano": ano_ref,
+        "anos_disponiveis": anos_disponiveis,
+    }

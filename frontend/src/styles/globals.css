@@ -1,0 +1,312 @@
+@import "tailwindcss";
+@import "tw-animate-css";
+
+/* Dark mode dirigido por classe `.dark` (next-themes attribute="class"). */
+@custom-variant dark (&:is(.dark *));
+
+/* ============================================================
+   MedFlow — Design tokens (OKLCH)
+   Marca roxa #53479B (hue ~292). Tema CLARO é canônico; ESCURO
+   troca os mesmos nomes. A SIDEBAR é sempre escura (independe do tema).
+   Direção: "refinado + vivo" — roxo sólido com brilho contido,
+   acento vivo p/ charts e estados, animações discretas.
+   ============================================================ */
+
+:root {
+  --radius: 0.75rem;
+
+  /* --- Marca (legado + acento vivo) --- */
+  --brand: oklch(0.43 0.12 292);
+  --brand-hover: oklch(0.38 0.12 292);
+  --brand-bright: oklch(0.62 0.19 292); /* acento vivo p/ glow, charts, hover */
+  --brand-ink: oklch(0.3 0.1 292);
+  --brand-subtle: oklch(0.96 0.02 292);
+  --brand-border: oklch(0.88 0.04 292);
+  --on-brand: oklch(0.99 0.005 292);
+
+  /* --- Superfícies & texto (legado) --- */
+  --bg: oklch(0.99 0.004 292);
+  --surface: oklch(1 0 0);
+  --surface-2: oklch(0.975 0.005 292);
+  --border-legacy: oklch(0.92 0.006 292);
+  --ink: oklch(0.24 0.02 292);
+  --ink-2: oklch(0.44 0.02 292);
+  --muted-legacy: oklch(0.55 0.015 292);
+
+  /* --- Semânticas de status (legado + uso novo) --- */
+  --success: oklch(0.58 0.13 150);
+  --success-fg: oklch(0.99 0.01 150);
+  --success-subtle: oklch(0.95 0.03 150);
+  --warning: oklch(0.72 0.13 75);
+  --warning-fg: oklch(0.28 0.06 75);
+  --warning-subtle: oklch(0.96 0.05 85);
+  --danger: oklch(0.57 0.21 27);
+  --danger-fg: oklch(0.99 0.01 27);
+  --danger-subtle: oklch(0.95 0.04 27);
+
+  /* --- Tokens semânticos shadcn (CLARO) --- */
+  --background: oklch(0.99 0.004 292);
+  --foreground: oklch(0.24 0.02 292);
+  --card: oklch(1 0 0);
+  --card-foreground: oklch(0.24 0.02 292);
+  --popover: oklch(1 0 0);
+  --popover-foreground: oklch(0.24 0.02 292);
+  --primary: oklch(0.43 0.12 292);
+  --primary-foreground: oklch(0.99 0.005 292);
+  --secondary: oklch(0.975 0.005 292);
+  --secondary-foreground: oklch(0.3 0.04 292);
+  --muted: oklch(0.975 0.005 292);
+  --muted-foreground: oklch(0.55 0.015 292);
+  --accent: oklch(0.96 0.02 292);
+  --accent-foreground: oklch(0.3 0.1 292);
+  --destructive: oklch(0.57 0.21 27);
+  --destructive-foreground: oklch(0.99 0.005 292);
+  --border: oklch(0.92 0.006 292);
+  --input: oklch(0.92 0.006 292);
+  --ring: oklch(0.43 0.12 292);
+
+  /* --- Charts: roxo-âncora, vivo mas legível --- */
+  --chart-1: oklch(0.55 0.2 292);
+  --chart-2: oklch(0.62 0.16 256);
+  --chart-3: oklch(0.68 0.14 200);
+  --chart-4: oklch(0.7 0.16 152);
+  --chart-5: oklch(0.74 0.15 64);
+
+  /* --- Sidebar: SEMPRE escura (roxo-navy profundo) --- */
+  --sidebar: oklch(0.205 0.038 292);
+  --sidebar-foreground: oklch(0.8 0.022 292);
+  --sidebar-primary: oklch(0.7 0.17 292);
+  --sidebar-primary-foreground: oklch(0.99 0.005 292);
+  --sidebar-accent: oklch(0.28 0.055 292);
+  --sidebar-accent-foreground: oklch(0.97 0.012 292);
+  --sidebar-border: oklch(0.32 0.045 292);
+  --sidebar-ring: oklch(0.7 0.17 292);
+}
+
+.dark {
+  /* --- Legado (escuro) --- */
+  --brand: oklch(0.7 0.13 292);
+  --brand-hover: oklch(0.75 0.13 292);
+  --brand-bright: oklch(0.72 0.18 292);
+  --brand-ink: oklch(0.92 0.05 292);
+  --brand-subtle: oklch(0.3 0.04 292);
+  --brand-border: oklch(0.4 0.05 292);
+  --on-brand: oklch(0.18 0.02 292);
+  --bg: oklch(0.2 0.015 292);
+  --surface: oklch(0.24 0.015 292);
+  --surface-2: oklch(0.27 0.015 292);
+  --border-legacy: oklch(0.32 0.012 292);
+  --ink: oklch(0.96 0.01 292);
+  --ink-2: oklch(0.78 0.015 292);
+  --muted-legacy: oklch(0.64 0.015 292);
+  --success-subtle: oklch(0.32 0.06 150);
+  --warning-subtle: oklch(0.34 0.06 75);
+  --warning-fg: oklch(0.85 0.12 85);
+  --danger-subtle: oklch(0.33 0.08 27);
+
+  /* --- shadcn (ESCURO) --- */
+  --background: oklch(0.2 0.015 292);
+  --foreground: oklch(0.96 0.01 292);
+  --card: oklch(0.24 0.015 292);
+  --card-foreground: oklch(0.96 0.01 292);
+  --popover: oklch(0.24 0.015 292);
+  --popover-foreground: oklch(0.96 0.01 292);
+  --primary: oklch(0.7 0.13 292);
+  --primary-foreground: oklch(0.18 0.02 292);
+  --secondary: oklch(0.27 0.015 292);
+  --secondary-foreground: oklch(0.92 0.01 292);
+  --muted: oklch(0.27 0.015 292);
+  --muted-foreground: oklch(0.7 0.015 292);
+  --accent: oklch(0.3 0.045 292);
+  --accent-foreground: oklch(0.96 0.012 292);
+  --destructive: oklch(0.62 0.2 27);
+  --destructive-foreground: oklch(0.99 0.005 27);
+  --border: oklch(0.32 0.012 292);
+  --input: oklch(0.34 0.014 292);
+  --ring: oklch(0.7 0.13 292);
+
+  --chart-1: oklch(0.66 0.2 292);
+  --chart-2: oklch(0.68 0.16 256);
+  --chart-3: oklch(0.72 0.14 200);
+  --chart-4: oklch(0.74 0.16 152);
+  --chart-5: oklch(0.78 0.15 64);
+
+  /* Sidebar mantém-se escura (mesmos valores do :root). */
+}
+
+/* ============================================================
+   Exposição p/ Tailwind (utilitários: bg-primary, text-brand…)
+   ============================================================ */
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-destructive-foreground: var(--destructive-foreground);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+
+  --color-chart-1: var(--chart-1);
+  --color-chart-2: var(--chart-2);
+  --color-chart-3: var(--chart-3);
+  --color-chart-4: var(--chart-4);
+  --color-chart-5: var(--chart-5);
+
+  --color-sidebar: var(--sidebar);
+  --color-sidebar-foreground: var(--sidebar-foreground);
+  --color-sidebar-primary: var(--sidebar-primary);
+  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
+  --color-sidebar-accent: var(--sidebar-accent);
+  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+  --color-sidebar-border: var(--sidebar-border);
+  --color-sidebar-ring: var(--sidebar-ring);
+
+  /* Acentos de marca e status (utilitários extras) */
+  --color-brand: var(--brand);
+  --color-brand-bright: var(--brand-bright);
+  --color-brand-subtle: var(--brand-subtle);
+  --color-brand-ink: var(--brand-ink);
+  --color-success: var(--success);
+  --color-success-foreground: var(--success-fg);
+  --color-success-subtle: var(--success-subtle);
+  --color-warning: var(--warning);
+  --color-warning-foreground: var(--warning-fg);
+  --color-warning-subtle: var(--warning-subtle);
+  --color-danger: var(--danger);
+  --color-danger-foreground: var(--danger-fg);
+  --color-danger-subtle: var(--danger-subtle);
+
+  /* Tipografia */
+  --font-sans: var(--font-geist-sans), system-ui, sans-serif;
+  --font-display: var(--font-montserrat), system-ui, sans-serif;
+  --font-mono: var(--font-geist-mono), ui-monospace, monospace;
+
+  /* Raio */
+  --radius-sm: calc(var(--radius) - 4px);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) + 4px);
+
+  /* Animações (entrada suave, brilho ambiente) */
+  --animate-fade-up: fade-up 0.5s cubic-bezier(0.22, 1, 0.36, 1) both;
+  --animate-fade-in: fade-in 0.4s ease-out both;
+  --animate-glow: glow 3.5s ease-in-out infinite;
+}
+
+@keyframes fade-up {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+@keyframes fade-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+@keyframes glow {
+  0%,
+  100% {
+    opacity: 0.5;
+  }
+  50% {
+    opacity: 0.9;
+  }
+}
+
+/* ============================================================
+   Base
+   ============================================================ */
+@layer base {
+  *,
+  *::before,
+  *::after {
+    box-sizing: border-box;
+  }
+  * {
+    border-color: var(--border);
+  }
+  html,
+  body {
+    margin: 0;
+    padding: 0;
+  }
+  body {
+    background: var(--background);
+    color: var(--foreground);
+    font-family: var(--font-geist-sans), system-ui, sans-serif;
+    font-size: 16px;
+    line-height: 1.55;
+    -webkit-font-smoothing: antialiased;
+    text-rendering: optimizeLegibility;
+  }
+  h1,
+  h2,
+  h3 {
+    font-family: var(--font-montserrat), system-ui, sans-serif;
+    letter-spacing: -0.02em;
+    text-wrap: balance;
+    margin: 0;
+  }
+  /* Números financeiros: tabulares sempre (regra crítica do portal). */
+  .tabular {
+    font-variant-numeric: tabular-nums;
+    font-feature-settings: "tnum";
+  }
+  :focus-visible {
+    outline: 2px solid var(--ring);
+    outline-offset: 2px;
+  }
+  ::selection {
+    background: oklch(0.62 0.19 292 / 0.25);
+  }
+}
+
+/* Roda de cores (react-colorful) — largura total no dialog de parceiros. */
+.mf-colorwheel .react-colorful {
+  width: 100%;
+  height: 180px;
+  gap: 8px;
+}
+.mf-colorwheel .react-colorful__saturation {
+  border-radius: 10px;
+  border-bottom: none;
+}
+.mf-colorwheel .react-colorful__hue {
+  height: 16px;
+  border-radius: 8px;
+}
+.mf-colorwheel .react-colorful__pointer {
+  width: 18px;
+  height: 18px;
+}
+
+/* Acessibilidade de movimento — obrigatório (DESIGN.md). */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+  }
+}
