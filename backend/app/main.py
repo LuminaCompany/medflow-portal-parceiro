@@ -5,6 +5,9 @@ antes de serializar. Erros sempre no formato `{ "error": { "code", "message" } }
 em pt-BR, sem vazar stack nem dado de outro parceiro.
 """
 
+from contextlib import asynccontextmanager, suppress
+from threading import Thread
+
 from fastapi import FastAPI, Request
 from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.cors import CORSMiddleware
@@ -22,10 +25,27 @@ from app.routers import (
     solicitacoes,
     vencimentos,
 )
+from app.services.dataset import get_dataset_service
 
 settings = get_settings()
 
-app = FastAPI(title="MedFlow — Portal do Parceiro", version="1.0.0")
+
+def _warm_cache() -> None:
+    """Pré-carrega o dataset (Sheets → cache) fora do caminho de request."""
+    # Sem creds/rede no boot não pode derrubar o app; o 1º request recarrega.
+    with suppress(Exception):
+        get_dataset_service().get()
+
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    # Aquece o cache em background: o boot não espera a Sheets API e o 1º request
+    # real (pós-deploy) não paga o load frio.
+    Thread(target=_warm_cache, daemon=True).start()
+    yield
+
+
+app = FastAPI(title="MedFlow — Portal do Parceiro", version="1.0.0", lifespan=lifespan)
 
 app.add_middleware(
     CORSMiddleware,

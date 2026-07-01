@@ -26,33 +26,50 @@ class SheetsClient:
             info = json.loads(self._settings.google_service_account_json)
             creds = Credentials.from_service_account_info(info, scopes=_SCOPES)
             # cache_discovery=False evita warning/IO de disco em runtime serverless/container.
-            self._service = build("sheets", "v4", credentials=creds, cache_discovery=False)
+            # static_discovery=True usa o doc de discovery embutido na lib → sem round-trip de
+            # rede pra montar o cliente (economia no cold start do container).
+            self._service = build(
+                "sheets",
+                "v4",
+                credentials=creds,
+                cache_discovery=False,
+                static_discovery=True,
+            )
         return self._service
 
-    def _read_tab(self, tab_name: str) -> list[list[str]]:
-        """Lê todas as células preenchidas de uma aba (por nome)."""
+    def read_all(self) -> tuple[list[list[str]], list[list[str]], list[list[str]]]:
+        """Lê as 3 abas numa ÚNICA chamada (`batchGet`) → (solicitacoes, cadastro, base).
+
+        Um round-trip HTTP em vez de 3 sequenciais — corta a latência do reload do
+        dataset (o gargalo no fim de cada janela de TTL). A ordem de `valueRanges`
+        acompanha a ordem dos `ranges` pedidos (contrato da API). `fields` poda tudo
+        menos os valores; a resposta já vem gzip (httplib2 negocia por padrão).
+        """
+        s = self._settings
         result = (
             self._get_service()
             .spreadsheets()
             .values()
-            .get(
-                spreadsheetId=self._settings.sheet_id,
-                range=tab_name,
+            .batchGet(
+                spreadsheetId=s.sheet_id,
+                ranges=[
+                    s.sheet_tab_solicitacoes,
+                    s.sheet_tab_cadastro,
+                    s.sheet_tab_base,
+                ],
                 valueRenderOption="UNFORMATTED_VALUE",
                 dateTimeRenderOption="FORMATTED_STRING",
+                fields="valueRanges(values)",
             )
             .execute()
         )
-        return [[_to_str(c) for c in row] for row in result.get("values", [])]
+        ranges = result.get("valueRanges", [])
 
-    def read_solicitacoes(self) -> list[list[str]]:
-        return self._read_tab(self._settings.sheet_tab_solicitacoes)
+        def _rows(i: int) -> list[list[str]]:
+            values = ranges[i].get("values", []) if i < len(ranges) else []
+            return [[_to_str(c) for c in row] for row in values]
 
-    def read_cadastro(self) -> list[list[str]]:
-        return self._read_tab(self._settings.sheet_tab_cadastro)
-
-    def read_base(self) -> list[list[str]]:
-        return self._read_tab(self._settings.sheet_tab_base)
+        return _rows(0), _rows(1), _rows(2)
 
 
 def _to_str(cell: object) -> str:

@@ -296,7 +296,7 @@ function VistaGestor({ data }: { data: VencimentosGestor }) {
 
       <Secao
         titulo="Vencimentos"
-        descricao="Vencido (vermelho) e a vencer (roxo) por contratante. Abra para ver as unidades ou os vencimentos."
+        descricao="Vencido (vermelho) e a vencer (âmbar) por contratante. Abra para ver as unidades ou os vencimentos."
         acao={
           <Select value={agrupar} onValueChange={(v) => setAgrupar(v as AgruparGestor)}>
             <SelectTrigger className="h-9 w-[190px]" aria-label="Agrupar contratante por">
@@ -493,7 +493,7 @@ function BarraSegmentada({
       ) : null}
       {aVencer > 0 ? (
         <div
-          className="h-full bg-primary/70 transition-[width] duration-300"
+          className="h-full bg-warning/75 transition-[width] duration-300"
           style={{ width: `${Math.max((aVencer / max) * 100, 2)}%` }}
         />
       ) : null}

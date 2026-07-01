@@ -47,9 +47,11 @@ class DatasetService:
         self._cache: TTLCache[Dataset] = TTLCache(settings.sheet_cache_ttl)
 
     def _load(self) -> Dataset:
-        cadastro = parse_cadastro(self._client.read_cadastro())
-        base = parse_base(self._client.read_base())
-        parsed = parse_solicitacoes(self._client.read_solicitacoes())
+        # Uma única chamada à Sheets API (batchGet) traz as 3 abas de uma vez.
+        sol_rows, cad_rows, base_rows = self._client.read_all()
+        cadastro = parse_cadastro(cad_rows)
+        base = parse_base(base_rows)
+        parsed = parse_solicitacoes(sol_rows)
         validas, pendencias = particiona(parsed, cadastro, hoje=date.today())
         return Dataset(validas=validas, pendencias=pendencias, base_medicos=base)
 
