@@ -1,12 +1,13 @@
 "use client";
 
 // Seletor de recorte temporal da Visão Geral (RF-019): toggle "ano inteiro" (padrão) vs
-// "por mês". Em "por mês" o usuário escolhe todos ou apenas alguns meses do ano selecionado.
-// Substitui os antigos filtros de período/mês de originação e o input de comparativo.
+// "por mês" (meses do ano selecionado). Alternativamente, um PERÍODO de datas de originação
+// (calendário de 2 meses, com confirmação): quando ativo, SUBSTITUI o recorte ano/meses —
+// a visão passa a mostrar apenas as solicitações originadas dentro do intervalo.
 
 import { X } from "lucide-react";
 
-import { DatePicker } from "@/components/ui/date-picker";
+import { DateRangePicker, INTERVALO_VAZIO, type Intervalo } from "@/components/ui/date-range-picker";
 import {
   Select,
   SelectContent,
@@ -33,11 +34,11 @@ interface Props {
   anosDisponiveis: number[];
   porMes: boolean;
   meses: number[]; // meses selecionados (1-12) quando porMes
-  dia: string; // data de originação exata (ISO aaaa-mm-dd); "" = todos os dias
+  intervalo: Intervalo; // período de originação (ISO); de="" = sem período
   onAno: (ano: number) => void;
   onPorMes: (porMes: boolean) => void;
   onMeses: (meses: number[]) => void;
-  onDia: (iso: string) => void;
+  onIntervalo: (intervalo: Intervalo) => void;
 }
 
 export function SeletorTempoOverview({
@@ -45,14 +46,15 @@ export function SeletorTempoOverview({
   anosDisponiveis,
   porMes,
   meses,
-  dia,
+  intervalo,
   onAno,
   onPorMes,
   onMeses,
-  onDia,
+  onIntervalo,
 }: Props) {
   const anos = anosDisponiveis.length > 0 ? anosDisponiveis : [ano];
   const todosSelecionados = meses.length === 12;
+  const periodoAtivo = intervalo.de !== ""; // período substitui o recorte ano/meses
 
   function alternaMes(m: number) {
     onMeses(meses.includes(m) ? meses.filter((x) => x !== m) : [...meses, m].sort((a, b) => a - b));
@@ -61,8 +63,8 @@ export function SeletorTempoOverview({
   return (
     <div className="flex flex-col gap-3 rounded-xl bg-card p-4 ring-1 ring-foreground/10">
       <div className="flex flex-wrap items-center justify-between gap-3">
-        <div className="flex items-center gap-3">
-          <Select value={String(ano)} onValueChange={(v) => onAno(Number(v))}>
+        <div className={cn("flex items-center gap-3", periodoAtivo && "opacity-50")}>
+          <Select value={String(ano)} onValueChange={(v) => onAno(Number(v))} disabled={periodoAtivo}>
             <SelectTrigger className="h-9 w-[110px] tabular-nums" aria-label="Ano">
               <SelectValue />
             </SelectTrigger>
@@ -77,10 +79,11 @@ export function SeletorTempoOverview({
             </SelectContent>
           </Select>
 
-          <Field orientation="horizontal" className="w-auto">
+          <Field orientation="horizontal" className="w-auto" data-disabled={periodoAtivo || undefined}>
             <Checkbox
               id="recorte-por-mes"
               checked={porMes}
+              disabled={periodoAtivo}
               onCheckedChange={(v) => onPorMes(v === true)}
               aria-label="Recorte por mês"
             />
@@ -91,32 +94,33 @@ export function SeletorTempoOverview({
               {porMes ? "Por mês" : "Ano inteiro"}
             </Label>
           </Field>
-
-          {/* Filtro por dia de originação (data do pedido) — calendário em popover. */}
-          <div className="flex items-center gap-1">
-            <DatePicker
-              value={dia}
-              onChange={onDia}
-              placeholder="Dia de originação"
-              className="h-9 w-[170px]"
-              aria-label="Filtrar por dia de originação"
-            />
-            {dia ? (
-              <Button
-                type="button"
-                size="icon"
-                variant="ghost"
-                className="size-9 shrink-0 text-muted-foreground"
-                aria-label="Limpar filtro de dia"
-                onClick={() => onDia("")}
-              >
-                <X className="size-4" />
-              </Button>
-            ) : null}
-          </div>
         </div>
 
-        {porMes ? (
+        {/* Período de originação (calendário de 2 meses, com confirmação). Substitui ano/meses. */}
+        <div className="flex items-center gap-1">
+          <DateRangePicker
+            value={intervalo}
+            onChange={onIntervalo}
+            numberOfMonths={2}
+            placeholder="Período de originação"
+            className="h-9 min-w-[210px]"
+            aria-label="Filtrar por período de originação"
+          />
+          {periodoAtivo ? (
+            <Button
+              type="button"
+              size="icon"
+              variant="ghost"
+              className="size-9 shrink-0 text-muted-foreground"
+              aria-label="Limpar período"
+              onClick={() => onIntervalo(INTERVALO_VAZIO)}
+            >
+              <X className="size-4" />
+            </Button>
+          ) : null}
+        </div>
+
+        {porMes && !periodoAtivo ? (
           <button
             type="button"
             onClick={() => onMeses(todosSelecionados ? [] : TODOS_OS_MESES)}
@@ -127,7 +131,13 @@ export function SeletorTempoOverview({
         ) : null}
       </div>
 
-      {porMes ? (
+      {periodoAtivo ? (
+        <p className="text-xs text-muted-foreground">
+          Período de originação ativo — ano e meses são ignorados enquanto houver um intervalo.
+        </p>
+      ) : null}
+
+      {porMes && !periodoAtivo ? (
         <div className="flex flex-wrap gap-1.5">
           {MESES.map((nome, i) => {
             const m = i + 1;

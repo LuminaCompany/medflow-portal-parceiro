@@ -30,30 +30,36 @@ def overview(
     user: AppUser,
     ano: int | None = None,
     meses: list[int] | None = None,
-    dia: date | None = None,
+    data_de: date | None = None,
+    data_ate: date | None = None,
     filtros: list[FiltroAplicado] | None = None,
     hoje: date | None = None,
 ) -> dict:
-    """Cards + série mensal recortados pelo seletor de tempo (ano / meses / dia).
+    """Cards + série mensal recortados pelo seletor de tempo (ano / meses ou período de datas).
 
-    Escopo R-001 primeiro, depois filtros dinâmicos (chips) e, por fim, o recorte temporal:
-    apenas solicitações cuja originação caia no `ano`; se `meses` for informado, apenas nesses
-    meses (toggle "por mês"); vazio/None = ano inteiro. Se `dia` for informado, restringe à
-    data de originação (`data_pedido`) exata daquele dia. Cards e série refletem o recorte.
+    Escopo R-001 primeiro, depois filtros dinâmicos (chips) e, por fim, o recorte temporal.
+    Se um PERÍODO for informado (`data_de` e/ou `data_ate`), ele SUBSTITUI o recorte ano/meses:
+    entram só as solicitações cuja data de originação (`data_pedido`) caia no intervalo inclusivo
+    [`data_de`, `data_ate`] (bordas abertas quando um dos limites é None). Sem período, vale o
+    recorte por `ano` (default = ano corrente) e, opcionalmente, `meses` (toggle "por mês";
+    vazio/None = ano inteiro). Cards e série refletem o recorte.
     """
     hoje = hoje or date.today()
     ano_ref = ano if ano is not None else hoje.year
     meses_sel = set(meses) if meses else None  # None = ano inteiro
+    periodo_ativo = data_de is not None or data_ate is not None
 
     escopadas = aplica_filtros(filtra_por_escopo(validas, user), filtros or [])
     anos_disponiveis = sorted({_ano_mes(s)[0] for s in escopadas}, reverse=True)
-    no_recorte = [
-        s
-        for s in escopadas
-        if (am := _ano_mes(s))[0] == ano_ref
-        and (meses_sel is None or am[1] in meses_sel)
-        and (dia is None or s.data_pedido == dia)
-    ]
+
+    def no_intervalo(s: Solicitacao) -> bool:
+        if periodo_ativo:
+            d = s.data_pedido
+            return (data_de is None or d >= data_de) and (data_ate is None or d <= data_ate)
+        am = _ano_mes(s)
+        return am[0] == ano_ref and (meses_sel is None or am[1] in meses_sel)
+
+    no_recorte = [s for s in escopadas if no_intervalo(s)]
 
     valor_total = sum((s.valor for s in no_recorte), Decimal("0"))
     total_cashback = sum((s.cashback for s in no_recorte), Decimal("0"))

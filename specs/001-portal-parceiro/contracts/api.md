@@ -157,8 +157,10 @@ Métricas + série mensal (US4 parceiro / RF-021 gestor consolidado).
 
 **Query** — recorte temporal por **toggle ano/mês** (RF-019): `?ano=aaaa` (default: ano
 corrente) e, no modo "por mês", `?meses=1,2,...` (csv 1–12). Sem `meses` = ano inteiro.
-Opcional `?dia=aaaa-mm-dd` restringe à **data de originação** (`data_pedido`) exata daquele
-dia (drill-down via calendário; compõe com `ano`/`meses`). Os `cards` e a `serie_mensal`
+Alternativamente, um **período de originação** via `?data_de=aaaa-mm-dd`/`?data_ate=aaaa-mm-dd`
+(calendário de 2 meses, confirmado no front) restringe à **data de originação** (`data_pedido`)
+dentro do intervalo **inclusivo** (bordas abertas quando um limite falta). Quando qualquer um
+dos dois é informado, o período **substitui** o recorte `ano`/`meses`. Os `cards` e a `serie_mensal`
 refletem esse recorte **mais** os **filtros dinâmicos** não-temporais da aba `overview`
 (ver §Filtros): `status`, `unidade`, `contratante` (só gestor). A `serie_mensal` cobre os
 meses do recorte (RF-020), formato `aaaa-mm`. `anos_disponiveis` lista os anos com dados

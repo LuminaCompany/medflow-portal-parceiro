@@ -1,5 +1,6 @@
 "use client";
 
+import Image from "next/image";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
@@ -96,8 +97,16 @@ export default function PortalLayout({ children }: { children: React.ReactNode }
         <Sheet open={mobileOpen} onOpenChange={setMobileOpen}>
           <SheetContent side="left" className="w-72 border-sidebar-border/60 bg-sidebar p-0 text-sidebar-foreground">
             <SheetHeader className="border-b border-sidebar-border/50">
-              <SheetTitle className="font-display text-lg text-white">
-                med<span className="font-extrabold italic">flow</span>
+              <SheetTitle asChild>
+                <div className="relative h-8 w-[150px]">
+                  <Image
+                    src="/logo-roxo.png"
+                    alt="medflow"
+                    fill
+                    sizes="150px"
+                    className="object-contain object-left"
+                  />
+                </div>
               </SheetTitle>
             </SheetHeader>
             <nav className="flex flex-col gap-1 p-3">

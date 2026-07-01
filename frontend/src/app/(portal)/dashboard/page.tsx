@@ -17,6 +17,7 @@ import { BarraFiltros } from "@/components/filtros/BarraFiltros";
 import { StatCard } from "@/components/portal/StatCard";
 import { ErroCarregamento } from "@/components/portal/ErroCarregamento";
 import { SeletorTempoOverview } from "@/components/portal/SeletorTempoOverview";
+import { INTERVALO_VAZIO, type Intervalo } from "@/components/ui/date-range-picker";
 import { GraficoMensal } from "@/components/GraficoMensal";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Empty, EmptyDescription, EmptyHeader, EmptyMedia, EmptyTitle } from "@/components/ui/empty";
@@ -36,25 +37,31 @@ function DashboardView() {
   const [ano, setAno] = useState(() => new Date().getFullYear());
   const [porMes, setPorMes] = useState(false);
   const [meses, setMeses] = useState<number[]>(TODOS_OS_MESES);
-  const [dia, setDia] = useState(""); // data de originação exata (ISO); "" = todos os dias
+  const [intervalo, setIntervalo] = useState<Intervalo>(INTERVALO_VAZIO); // período de originação; substitui ano/meses
   const [data, setData] = useState<Overview | null>(null);
   const [carregando, setCarregando] = useState(true);
   const [erro, setErro] = useState<string | null>(null);
 
   const mesesKey = meses.join(",");
+  const periodoAtivo = intervalo.de !== "";
 
   const carregar = useCallback(() => {
     setCarregando(true);
     setErro(null);
     const params = new URLSearchParams(queryString); // status/unidade/contratante (chips)
-    params.set("ano", String(ano));
-    if (porMes && mesesKey) params.set("meses", mesesKey);
-    if (dia) params.set("dia", dia);
+    if (periodoAtivo) {
+      // Período substitui ano/meses: envia só o intervalo de datas de originação.
+      params.set("data_de", intervalo.de);
+      params.set("data_ate", intervalo.ate || intervalo.de);
+    } else {
+      params.set("ano", String(ano));
+      if (porMes && mesesKey) params.set("meses", mesesKey);
+    }
     apiGet<Overview>(`/api/overview?${params}`)
       .then(setData)
       .catch((e) => setErro(e instanceof Error ? e.message : "Erro ao carregar a visão geral."))
       .finally(() => setCarregando(false));
-  }, [ano, porMes, mesesKey, dia, queryString]);
+  }, [ano, porMes, mesesKey, periodoAtivo, intervalo.de, intervalo.ate, queryString]);
 
   useEffect(() => {
     carregar();
@@ -70,12 +77,6 @@ function DashboardView() {
   function alternaPorMes(ativo: boolean) {
     setPorMes(ativo);
     if (ativo && meses.length === 0) setMeses(TODOS_OS_MESES);
-  }
-
-  function escolheDia(iso: string) {
-    setDia(iso);
-    // Mantém o ano coerente com o dia escolhido (o dia filtra por data exata).
-    if (iso) setAno(Number(iso.slice(0, 4)));
   }
 
   const primeiroNome = me?.nome_exibicao?.trim().split(/\s+/)[0] ?? "";
@@ -98,11 +99,11 @@ function DashboardView() {
         anosDisponiveis={data?.anos_disponiveis ?? []}
         porMes={porMes}
         meses={meses}
-        dia={dia}
+        intervalo={intervalo}
         onAno={setAno}
         onPorMes={alternaPorMes}
         onMeses={setMeses}
-        onDia={escolheDia}
+        onIntervalo={setIntervalo}
       />
 
       {/* Barra de filtros (chips) — impacta cards e gráfico (RF-F08) */}

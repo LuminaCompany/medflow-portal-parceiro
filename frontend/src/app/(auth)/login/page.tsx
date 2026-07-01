@@ -1,5 +1,6 @@
 "use client";
 
+import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { ArrowRight, Loader2, Lock, Mail, ShieldCheck, TrendingUp, Wallet } from "lucide-react";
@@ -56,16 +57,17 @@ export default function LoginPage() {
           style={{ background: "oklch(0.62 0.2 295 / 0.25)" }}
         />
 
-        <div className="relative flex items-center gap-3">
-          <span
-            className="grid size-11 place-items-center rounded-xl font-display text-xl font-extrabold text-white ring-1 ring-white/15"
-            style={{ background: "linear-gradient(135deg, oklch(0.58 0.2 292), oklch(0.45 0.16 288))" }}
-          >
-            <span className="italic">m</span>
-          </span>
-          <span className="font-display text-2xl font-bold tracking-tight text-white">
-            med<span className="font-extrabold italic">flow</span>
-          </span>
+        <div className="relative flex items-center">
+          <div className="relative h-11 w-[190px]">
+            <Image
+              src="/logo-roxo.png"
+              alt="medflow"
+              fill
+              priority
+              sizes="190px"
+              className="object-contain object-left"
+            />
+          </div>
         </div>
 
         <div className="relative mt-auto max-w-md">
@@ -96,17 +98,23 @@ export default function LoginPage() {
       {/* Formulário */}
       <div className="relative flex items-center justify-center bg-background px-6 py-12">
         <div className="w-full max-w-sm">
-          {/* Marca (mobile) */}
-          <div className="mb-8 flex items-center gap-2.5 lg:hidden">
-            <span
-              className="grid size-10 place-items-center rounded-xl font-display text-lg font-extrabold text-white"
+          {/* Marca (mobile) — logo branca sobre chip escuro (fundo claro no tema light) */}
+          <div className="mb-8 flex lg:hidden">
+            <div
+              className="relative inline-flex items-center rounded-xl px-3.5 py-2.5 ring-1 ring-white/15"
               style={{ background: "linear-gradient(135deg, oklch(0.58 0.2 292), oklch(0.45 0.16 288))" }}
             >
-              <span className="italic">m</span>
-            </span>
-            <span className="font-display text-xl font-bold tracking-tight">
-              med<span className="font-extrabold italic">flow</span>
-            </span>
+              <div className="relative h-8 w-[150px]">
+                <Image
+                  src="/logo-roxo.png"
+                  alt="medflow"
+                  fill
+                  priority
+                  sizes="150px"
+                  className="object-contain object-left"
+                />
+              </div>
+            </div>
           </div>
 
           <h1 className="text-2xl font-bold tracking-tight">Acesse o portal</h1>

@@ -41,8 +41,8 @@ import {
   SheetHeader,
   SheetTitle,
 } from "@/components/ui/sheet";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Switch } from "@/components/ui/switch";
 import { apiGet, apiSend } from "@/lib/api";
 import { formatData } from "@/lib/format";
 import type { ContratanteOpcao, Parceiro, ParceiroLogin, UnidadeInfo } from "@/lib/types";
@@ -476,11 +476,12 @@ function DialogConfig({
               O gestor verifica o Valor a Pagar já descontado.
             </p>
           </div>
-          <Switch
+          <Checkbox
             id="cfg-rebate"
             checked={rebateAtivo}
-            onCheckedChange={setRebateAtivo}
+            onCheckedChange={(v) => setRebateAtivo(v === true)}
             aria-label="Ativar serviço de rebate (cashback)"
+            className="size-5 shrink-0"
           />
         </label>
 
