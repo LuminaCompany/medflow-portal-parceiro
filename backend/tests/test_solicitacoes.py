@@ -14,7 +14,7 @@ BESA = "BESA Medical Group"
 AH = "A.H. GESTÃO MÉDICA"
 
 
-def _sol(contratante, codigo, cliente, status="a_pagar", valor="100"):
+def _sol(contratante, codigo, cliente, status="a_pagar", valor="100", unidade=None):
     return Solicitacao(
         codigo=codigo,
         quitado=(status == "pago"),
@@ -23,6 +23,7 @@ def _sol(contratante, codigo, cliente, status="a_pagar", valor="100"):
         data_pedido=date(2026, 1, 1),
         data_vencimento=date(2026, 7, 1),
         contratante=contratante,
+        unidade=unidade,
         status=status,
         status_label=status,
         medico_grupo_id=normalize_nome(cliente),
@@ -83,6 +84,26 @@ def test_detalhe_escopado_nao_vaza_medico_de_outro_parceiro():
     det = detalhe_solicitacao(ds, _user("gestor", None), "9")
     assert det is not None
     assert det["medico"]["cpf"] == "111"
+
+
+def test_detalhe_respeita_allowlist_de_unidade():
+    """Feature 003 / R-001: parceiro com allowlist NÃO abre detalhe (nem PII) de Unidade fora
+    dela, mesmo sendo do próprio Contratante. Regressão do vazamento do endpoint de detalhe."""
+    validas = [
+        _sol(BESA, "1", "Dr. Ana", unidade="AMA"),  # dentro da allowlist
+        _sol(BESA, "50", "Dr. Zeca", unidade="Hosp. Fora"),  # fora da allowlist
+    ]
+    base = {normalize_nome("Dr. Zeca"): {"nome": "Dr. Zeca", "cpf": "999", "telefone": None,
+            "email": None, "pix": None, "pix_tipo": None, "nascimento": None}}
+    ds = _dataset(validas, base)
+    parceiro = AppUser(id="u", email="e@e", role="parceiro", contratante=BESA,
+                       nome_exibicao="N", unidades=["AMA"])
+    # Unidade permitida → abre.
+    assert detalhe_solicitacao(ds, parceiro, "1") is not None
+    # Unidade fora da allowlist → None (404 no router); não vaza detalhe nem CPF.
+    assert detalhe_solicitacao(ds, parceiro, "50") is None
+    # Gestor (sem allowlist) enxerga as duas.
+    assert detalhe_solicitacao(ds, _user("gestor", None), "50") is not None
 
 
 def test_detalhe_inclui_resumo_do_medico():

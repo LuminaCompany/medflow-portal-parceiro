@@ -10,7 +10,7 @@ from decimal import Decimal
 from app.domain.filtros.engine import FiltroAplicado
 from app.domain.filtros.engine import aplica as aplica_filtros
 from app.domain.models import AppUser, Solicitacao
-from app.domain.scope import escopo_permitido, filtra_por_escopo, is_gestor
+from app.domain.scope import filtra_por_escopo, is_gestor
 from app.services.cores import cor_para
 from app.services.dataset import Dataset
 from app.services.serialize import money_str, serializa_medico, serializa_solicitacao
@@ -122,26 +122,27 @@ def _resumo_medico(itens_escopo: list[Solicitacao], grupo_id: str | None, gestor
 def detalhe_solicitacao(dataset: Dataset, user: AppUser, codigo: str) -> dict | None:
     """Detalhe + médico enriquecido (PII) + resumo agregado do médico, escopado.
 
-    Crítico (R-001): nunca devolve a solicitação — nem o médico, nem o resumo — de outro
-    parceiro. None se fora do escopo/inexistente.
+    Crítico (R-001): passa pelo MESMO ponto de escopo das demais telas —
+    `filtra_por_escopo` (Contratante **E** Unidade∈allowlist, feature 003). Nunca devolve a
+    solicitação — nem o médico, nem o resumo — fora do escopo do usuário. None se fora do
+    escopo/inexistente (não vaza existência: vira 404 no router).
     """
-    escopadas = escopo_permitido(user, None)
     gestor = is_gestor(user)
-    for s in dataset.validas:
+    # Escopo R-001 no ponto único: parceiro só enxerga o próprio Contratante E as Unidades
+    # da allowlist; gestor recebe tudo. Buscar o código DENTRO do escopo fecha o vazamento
+    # (a busca em `dataset.validas` cru ignorava a allowlist e vazava detalhe+PII de Unidade
+    # fora do escopo do parceiro).
+    no_escopo = filtra_por_escopo(dataset.validas, user)
+    for s in no_escopo:
         if s.codigo != codigo:
             continue
-        # Parceiro: só se a linha for do seu contratante. Gestor (escopadas=None): qualquer.
-        if escopadas is not None and s.contratante not in {c.strip() for c in escopadas}:
-            return None
         medico = dataset.medico_de(s.cliente)
         # Resumo do médico: só o mesmo contratante (evita fundir homônimos de outro
         # parceiro na visão consolidada do gestor) e sempre dentro do escopo do usuário.
-        no_escopo = [
-            x for x in filtra_por_escopo(dataset.validas, user) if x.contratante == s.contratante
-        ]
+        do_contratante = [x for x in no_escopo if x.contratante == s.contratante]
         return {
             "solicitacao": _serializa(s, gestor),
             "medico": serializa_medico(medico),
-            "resumo_medico": _resumo_medico(no_escopo, s.medico_grupo_id, gestor),
+            "resumo_medico": _resumo_medico(do_contratante, s.medico_grupo_id, gestor),
         }
     return None
