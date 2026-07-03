@@ -225,6 +225,31 @@ export interface PagamentosGestor {
   contratantes: ContratantePagamentos[];
 }
 
+// --- Feedbacks (feature 006) ---
+export type FeedbackTipo = "sugestao" | "bug";
+export type FeedbackStatus = "aberto" | "feito";
+
+export interface Feedback {
+  id: string;
+  autor_nome: string;
+  autor_papel: Role;
+  contratante: string | null; // null p/ gestor
+  aba: string; // aba apontada (ou "Não se encaixa")
+  tipo: FeedbackTipo;
+  tipo_label: string;
+  descricao: string;
+  status: FeedbackStatus;
+  status_label: string;
+  concluido_por: string | null;
+  concluido_at: string | null;
+  created_at: string | null;
+}
+
+export interface FeedbacksGestor {
+  cards: { abertos: number; concluidos: number; sugestoes: number; bugs: number };
+  feedbacks: Feedback[];
+}
+
 export interface Pendencia {
   codigo: string;
   cliente: string | null;

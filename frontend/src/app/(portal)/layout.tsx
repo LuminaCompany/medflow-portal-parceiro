@@ -9,13 +9,17 @@ import {
   FileText,
   HandCoins,
   LayoutDashboard,
+  MessageSquare,
+  MessageSquarePlus,
   TriangleAlert,
   Users,
 } from "lucide-react";
 
 import { Sidebar, type NavItem } from "@/components/portal/Sidebar";
+import { FeedbackDialog } from "@/components/portal/FeedbackDialog";
 import { Topbar } from "@/components/portal/Topbar";
 import { PageTransition } from "@/components/portal/PageTransition";
+import { APP_VERSION } from "@/lib/version";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { Toaster } from "@/components/ui/sonner";
@@ -36,6 +40,7 @@ const NAV: NavDef[] = [
   { href: "/pagamentos", label: "Pagamentos", icon: HandCoins, roles: ["gestor"] },
   { href: "/parceiros", label: "Parceiros", icon: Users, roles: ["gestor"] },
   { href: "/pendencias", label: "Pendências", icon: TriangleAlert, roles: ["gestor"] },
+  { href: "/feedbacks", label: "Feedbacks", icon: MessageSquare, roles: ["gestor"] },
 ];
 
 export default function PortalLayout({ children }: { children: React.ReactNode }) {
@@ -136,6 +141,23 @@ export default function PortalLayout({ children }: { children: React.ReactNode }
                   </Link>
                 );
               })}
+
+              <div className="mt-2 border-t border-sidebar-border/50 pt-3">
+                <FeedbackDialog
+                  trigger={
+                    <button
+                      type="button"
+                      className="flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-left text-sm font-medium text-sidebar-foreground/75 transition-colors hover:bg-sidebar-accent/60"
+                    >
+                      <MessageSquarePlus className="size-[19px] shrink-0" />
+                      Dar uma sugestão ou reportar um erro
+                    </button>
+                  }
+                />
+                <p className="px-3 pt-2 text-[11px] font-medium tracking-wide text-sidebar-foreground/50">
+                  Versão {APP_VERSION}
+                </p>
+              </div>
             </nav>
           </SheetContent>
         </Sheet>

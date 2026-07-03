@@ -4,7 +4,14 @@ Portal web somente leitura de antecipação de recebíveis médicos. Backend **P
 frontend **Next.js**, auth **Supabase**, dados financeiros em **Google Sheets** (lidos via
 Service Account, em cache). Isolamento de dados por parceiro (`Contratante`) é inegociável.
 
+> ⛔ **REGRA SUPREMA (acima de tudo):** um login de uma Contratante NUNCA pode ver/contar/
+> inferir qualquer dado de outra Contratante. Todo endpoint de dados chama `filtra_por_escopo`
+> (`domain/scope.py`) como 1º passo; gestor-only gateia com `GestorUser`; nada de escopo vem do
+> corpo do request. Endpoint novo de dados **entra no teste de varredura** `tests/test_e2e_isolamento.py`.
+> Detalhes e contrato: `docs/ISOLAMENTO-CROSS-CONTRATANTE.md`.
+
 - Constituição: `.specify/memory/constitution.md` (PT-BR, Clean Code/DRY/KISS, isolamento)
+- **Isolamento cross-Contratante (regra suprema): `docs/ISOLAMENTO-CROSS-CONTRATANTE.md`**
 - Produto: `PRODUCT.md` · Design/tokens: `DESIGN.md` · Visão geral: `DOCUMENTATION.MD`
 
 <!-- SPECKIT START -->
@@ -58,3 +65,16 @@ O `rebate` é congelado no snapshot do aviso (0 p/ quem não tem o serviço; ret
 - Backend: `rebate_ativo` em `AppUser`/`auth/supabase.py` + `partners.py`; `snapshot_lote`/`_serializa`
   em `pagamentos.py`; `rebate`/`valor_a_pagar` por lote em `vencimentos.py`
 - Frontend: `Me.rebate_ativo` gate; `ConfirmarPagamento.tsx`, `pagamentos/page.tsx`, `parceiros/page.tsx` (Switch)
+
+## Feature: Feedbacks (sugestão/bug) (006)
+Qualquer usuário (parceiro OU gestor) envia feedback pelo botão "Dar uma sugestão ou reportar um
+erro" no rodapé da sidebar (acima do login; versão do portal `APP_VERSION` exibida ao lado).
+Dialog: **Aba** (select, qualquer aba + "Não se encaixa") + **Tipo** (toggle sugestão|bug) +
+descrição. Gestor tem aba "Feedbacks" (abaixo de Pendências) com stat cards + filtros
+(status/tipo) e marca "feito"↔"reabrir". Autor derivado do token (nunca do corpo); gestor vê
+TODOS (é o destinatário — sem isolamento por Contratante). NÃO toca sheet/CRM. Tabela Postgres
+`feedbacks` (service role, RLS deny-all). Estados: aberto↔feito.
+- Migration: `supabase/migrations/20260703_feedbacks.sql` (aplicar manual no Supabase)
+- Backend: `app/services/feedbacks.py`, `app/routers/feedbacks.py` (`/api/feedbacks/*`)
+- Frontend: `components/portal/FeedbackDialog.tsx`, `app/(portal)/feedbacks/page.tsx`,
+  `lib/version.ts` (`APP_VERSION`), `components/ui/textarea.tsx`; triggers em `Sidebar.tsx` + `layout.tsx`

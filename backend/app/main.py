@@ -17,6 +17,7 @@ from starlette.exceptions import HTTPException as StarletteHTTPException
 from app.config import get_settings
 from app.routers import (
     auth,
+    feedbacks,
     filtros,
     overview,
     pagamentos,
@@ -112,3 +113,4 @@ app.include_router(partners.router)
 app.include_router(pendencias.router)
 app.include_router(filtros.router)
 app.include_router(pagamentos.router)
+app.include_router(feedbacks.router)

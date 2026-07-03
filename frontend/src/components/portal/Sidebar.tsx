@@ -6,9 +6,13 @@ import { usePathname } from "next/navigation";
 import { AnimatePresence, motion } from "motion/react";
 import type { LucideIcon } from "lucide-react";
 
+import { MessageSquarePlus } from "lucide-react";
+
 import { AccountMenu } from "@/components/AccountMenu";
+import { FeedbackDialog } from "@/components/portal/FeedbackDialog";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
+import { APP_VERSION } from "@/lib/version";
 import { cn } from "@/lib/utils";
 
 export interface NavItem {
@@ -150,16 +154,50 @@ export function Sidebar({
         })}
       </nav>
 
-      {/* Rodapé: tema + conta */}
-      <div className="relative mt-auto flex flex-col gap-1 border-t border-sidebar-border/50 p-3">
+      {/* Rodapé: feedback + versão + tema + conta */}
+      <div className="relative mt-auto flex flex-col gap-2 border-t border-sidebar-border/50 p-3">
+        {/* "Dar uma sugestão ou reportar um erro" — acima da linha do login */}
+        <FeedbackDialog
+          trigger={
+            collapsed ? (
+              <button
+                type="button"
+                aria-label="Dar uma sugestão ou reportar um erro"
+                title="Dar uma sugestão ou reportar um erro"
+                className="mx-auto flex size-9 items-center justify-center rounded-xl text-sidebar-foreground/75 transition-colors hover:bg-sidebar-accent/60 hover:text-sidebar-foreground focus-visible:ring-2 focus-visible:ring-sidebar-ring focus-visible:outline-none"
+              >
+                <MessageSquarePlus className="size-[19px]" />
+              </button>
+            ) : (
+              <button
+                type="button"
+                className="flex w-full items-center gap-2.5 rounded-xl px-3 py-2 text-left text-[13px] font-medium text-sidebar-foreground/75 transition-colors hover:bg-sidebar-accent/60 hover:text-sidebar-foreground focus-visible:ring-2 focus-visible:ring-sidebar-ring focus-visible:outline-none"
+              >
+                <MessageSquarePlus className="size-[18px] shrink-0" />
+                <span className="leading-tight">Dar uma sugestão ou reportar um erro</span>
+              </button>
+            )
+          }
+        />
+
         <div className={cn("flex items-center", collapsed ? "justify-center" : "justify-between px-1")}>
           {!collapsed && (
-            <span className="text-[11px] font-medium tracking-wide text-sidebar-foreground/75">
-              {PAPEL_LABEL[papel] ?? papel}
+            <span className="flex items-center gap-1.5">
+              <span className="text-[11px] font-medium tracking-wide text-sidebar-foreground/75">
+                {PAPEL_LABEL[papel] ?? papel}
+              </span>
+              <span className="rounded-full bg-sidebar-accent/60 px-1.5 py-0.5 text-[10px] font-semibold tracking-wide text-sidebar-foreground/60">
+                {APP_VERSION}
+              </span>
             </span>
           )}
           <ThemeToggle />
         </div>
+        {collapsed && (
+          <span className="text-center text-[10px] font-semibold tracking-wide text-sidebar-foreground/50">
+            {APP_VERSION}
+          </span>
+        )}
         <AccountMenu nome={nome} papel={PAPEL_LABEL[papel] ?? papel} collapsed={collapsed} />
       </div>
     </motion.aside>
