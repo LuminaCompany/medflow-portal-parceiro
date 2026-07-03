@@ -6,10 +6,10 @@ operam sobre `validas`; só `/api/admin/pendencias` vê `pendencias`.
 """
 
 from dataclasses import dataclass
-from datetime import date
 from functools import lru_cache
 
 from app.config import Settings, get_settings
+from app.domain.datas import hoje
 from app.domain.models import Medico, Pendencia, Solicitacao
 from app.domain.validation import particiona
 from app.sheets.cache import TTLCache
@@ -20,6 +20,10 @@ from app.sheets.parser import (
     parse_cadastro,
     parse_solicitacoes,
 )
+
+
+class EmptyDatasetError(RuntimeError):
+    """Leitura da planilha veio vazia (transitória) — não deve virar snapshot cacheado."""
 
 
 @dataclass
@@ -49,10 +53,17 @@ class DatasetService:
     def _load(self) -> Dataset:
         # Uma única chamada à Sheets API (batchGet) traz as 3 abas de uma vez.
         sol_rows, cad_rows, base_rows = self._client.read_all()
+        # Sanity check: uma aba "Dados Tratados" saudável SEMPRE tem ao menos o cabeçalho.
+        # Vazio total = leitura transitória (aba limpa/re-import em andamento). Tratar como erro
+        # para NÃO substituir um snapshot bom por 0 solicitações (que viraria "tudo pago").
+        if not sol_rows:
+            raise EmptyDatasetError(
+                "Aba de solicitações veio vazia — leitura transitória, mantém snapshot anterior."
+            )
         cadastro = parse_cadastro(cad_rows)
         base = parse_base(base_rows)
         parsed = parse_solicitacoes(sol_rows)
-        validas, pendencias = particiona(parsed, cadastro, hoje=date.today())
+        validas, pendencias = particiona(parsed, cadastro, hoje=hoje())
         return Dataset(validas=validas, pendencias=pendencias, base_medicos=base)
 
     def get(self) -> Dataset:

@@ -7,11 +7,13 @@ Derivado em memória a cada carga: corrigiu a fonte, a linha volta sozinha (self
 
 from datetime import date
 
+from app.domain.datas import hoje as hoje_operacao
 from app.domain.models import Pendencia, Solicitacao
 from app.domain.status import status, status_label
 from app.sheets.parser import ParsedSolicitacao, formatar_codigo, normalize_nome
 
 # Motivos legíveis (data-model §6) — strings exibidas ao gestor.
+MOTIVO_CODIGO_AUSENTE = "Código ausente"
 MOTIVO_CLIENTE_AUSENTE = "Cliente ausente"
 MOTIVO_CONTRATANTE_FALTANDO = "Contratante faltando"
 MOTIVO_CLIENTE_SEM_CADASTRO = "Cliente sem cadastro"
@@ -29,6 +31,12 @@ CONTRATANTE_INDIVIDUAL = "INDIVIDUAL"
 def _motivos(item: ParsedSolicitacao, cadastro: dict[str, str]) -> list[str]:
     """Coleta TODOS os motivos de reprovação (uma linha pode acumular vários)."""
     motivos: list[str] = list(item.parse_errors)
+
+    # Código é obrigatório: sem ele o item não vira Solicitacao válida (bate o assert em
+    # _para_solicitacao). Sem essa checagem, uma linha com cliente+valor mas código vazio
+    # passava a validação e derrubava a carga inteira do dataset.
+    if not item.codigo:
+        motivos.append(MOTIVO_CODIGO_AUSENTE)
 
     if not item.cliente:
         motivos.append(MOTIVO_CLIENTE_AUSENTE)
@@ -122,7 +130,7 @@ def particiona(
     `cadastro`: mapa cliente→contratante (verdade do vínculo). Toda tela usa `validas`;
     `/api/admin/pendencias` usa `pendencias`.
     """
-    hoje = hoje or date.today()
+    hoje = hoje or hoje_operacao()
     validas: list[Solicitacao] = []
     pendencias: list[Pendencia] = []
     for item in itens:

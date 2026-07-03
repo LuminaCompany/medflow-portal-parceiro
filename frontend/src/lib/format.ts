@@ -44,6 +44,25 @@ export function formatData(iso: string | null | undefined): string {
   return DATE_BR.format(d);
 }
 
+const DATA_HORA_BR = new Intl.DateTimeFormat("pt-BR", {
+  day: "2-digit",
+  month: "2-digit",
+  year: "numeric",
+  timeZone: "America/Sao_Paulo",
+});
+
+/**
+ * Timestamptz ISO ("2026-06-30T23:30:00+00:00") → data no fuso BRT ("01/07/2026").
+ * Use para `created_at`/`verificado_at`: `.slice(0,10)` pegava a data UTC e mostrava o dia
+ * seguinte em envios noturnos (UTC−3). null/inválido → "—".
+ */
+export function formatDataHora(iso: string | null | undefined): string {
+  if (!iso) return "—";
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return "—";
+  return DATA_HORA_BR.format(d);
+}
+
 /**
  * Dias relativos ao vencimento: `>0` vencido (dias em atraso), `<=0` a vencer (0 = hoje).
  * null se a data for ausente/inválida. Espelha o cálculo do backend (`hoje - venc`).

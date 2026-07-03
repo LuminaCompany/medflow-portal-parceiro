@@ -7,6 +7,7 @@ do parceiro — o corpo do request só informa qual unidade.
 """
 
 from datetime import date
+from decimal import Decimal
 
 from fastapi import APIRouter, HTTPException, Response, status
 from pydantic import BaseModel
@@ -30,6 +31,10 @@ router = APIRouter(prefix="/api/pagamentos", tags=["pagamentos"])
 class AvisoIn(BaseModel):
     unidade: str
     data_vencimento: date
+    # Eco do valor (Originação) que o parceiro viu no modal. Se divergir do snapshot recomputado
+    # no servidor (dado atualizado no sheet OU filtro de UI ativo reduzindo a linha), barra o envio
+    # em vez de congelar em silêncio um valor diferente do confirmado.
+    valor_esperado: Decimal | None = None
 
 
 class RejeitarIn(BaseModel):
@@ -75,6 +80,11 @@ def criar_aviso(body: AvisoIn, user: CurrentUser) -> dict:
         )
     try:
         valor, rebate, codigos = snapshot_lote(sols, user.rebate_ativo)
+        if body.valor_esperado is not None and body.valor_esperado != valor:
+            raise PagamentoAvisoError(
+                "O valor deste lote mudou (dados atualizados ou filtro ativo). "
+                "Recarregue a página e confirme novamente."
+            )
         return _service().criar(
             user.contratante, body.unidade, body.data_vencimento, valor, codigos, rebate
         )

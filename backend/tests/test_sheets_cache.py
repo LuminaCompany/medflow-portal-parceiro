@@ -55,7 +55,7 @@ class _FakeExec:
     def __init__(self, payload: dict) -> None:
         self._payload = payload
 
-    def execute(self) -> dict:
+    def execute(self, **kwargs) -> dict:  # aceita num_retries (retry de transientes)
         return self._payload
 
 

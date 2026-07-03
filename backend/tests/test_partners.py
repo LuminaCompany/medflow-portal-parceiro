@@ -1,8 +1,9 @@
 """Feature 003 — PartnersService partner-centric: agrupamento por Contratante e config
 (cor + allowlist de unidades) sincronizada entre todos os logins da Contratante.
 
-Usa um fake do Supabase Auth Admin API (sem rede). O merge de `app_metadata` aqui é uma
-substituição — o serviço sempre reenvia a config completa, então é equivalente ao GoTrue.
+Usa um fake do Supabase Auth Admin API (sem rede). O `update_user_by_id` faz **merge raso**
+de `app_metadata` — espelhando o GoTrue real — para que desligar `rebate_ativo` (chave omitida
+vs. gravada como False) seja testado de verdade.
 """
 
 from app.services.partners import PartnersService
@@ -42,7 +43,9 @@ class FakeAdminAPI:
     def update_user_by_id(self, uid, attrs):
         u = next(x for x in self._users if x.id == uid)
         if "app_metadata" in attrs:
-            u.app_metadata = dict(attrs["app_metadata"])
+            # Merge RASO (igual GoTrue): chaves não reenviadas sobrevivem. É exatamente por isso
+            # que desligar rebate exige gravar a chave como False, não apenas omiti-la.
+            u.app_metadata = {**u.app_metadata, **attrs["app_metadata"]}
         if "user_metadata" in attrs:
             u.user_metadata = {**u.user_metadata, **attrs["user_metadata"]}
         return _Created(u)
@@ -148,10 +151,12 @@ def test_editar_config_fanout_rebate_ativo():
     assert out["rebate_ativo"] is True
     assert users[0].app_metadata.get("rebate_ativo") is True
     assert users[1].app_metadata.get("rebate_ativo") is True
-    # desligar remove a flag (ausente = False) em todos os logins
-    svc.editar_config(contratante="BESA", rebate_ativo=False)
-    assert users[0].app_metadata.get("rebate_ativo", False) is False
-    assert users[1].app_metadata.get("rebate_ativo", False) is False
+    # Desligar DEVE persistir mesmo com merge raso do GoTrue: a chave é gravada como False
+    # (não apenas omitida), senão o `true` antigo sobreviveria e o parceiro seguiria com desconto.
+    out_off = svc.editar_config(contratante="BESA", rebate_ativo=False)
+    assert out_off["rebate_ativo"] is False
+    assert users[0].app_metadata["rebate_ativo"] is False
+    assert users[1].app_metadata["rebate_ativo"] is False
 
 
 def test_editar_config_rebate_preserva_unidades_e_cor():

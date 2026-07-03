@@ -5,12 +5,20 @@ arquitetural ou mudança de setup.
 
 ## O que é
 
-Portal web **somente leitura** que dá a cada parceiro (franquia) transparência sobre o que
+Portal web de **visualização** que dá a cada parceiro (franquia) transparência sobre o que
 deve à MedFlow (valor antecipado aos seus médicos), com dashboard, solicitações e
 vencimentos; e dá ao gestor MedFlow a visão consolidada + administração de logins.
 
+> **Exceção de escrita governada (features 004/005):** os dados financeiros seguem **somente
+> leitura** (fonte = planilha). A ÚNICA escrita iniciada pelo parceiro é o **aviso de pagamento**
+> (o parceiro sinaliza "paguei este lote"; o gestor verifica/rejeita), persistido em Postgres
+> (Supabase). Não altera a planilha nem o CRM. Ver ADR `docs/adr/0003` e `0004` (rebate), e a
+> emenda 1.2.0 da constituição.
+
 - Especificação completa: `specs/001-portal-parceiro/spec.md`
 - Plano técnico: `specs/001-portal-parceiro/plan.md`
+- Features posteriores: `002-filtros-dinamicos/spec.md`; features 003/004/005 documentadas em
+  `CLAUDE.md` + ADRs `docs/adr/0002..0004`.
 
 ## Arquitetura (decisão atual)
 
@@ -32,12 +40,16 @@ Frontend Next.js (App Router, Server Components) → UI clean (DESIGN.md), tema 
   colunas de margem de outros/da MedFlow.
 - **Rápido/clean**: dados servidos de cache normalizado; paginação no servidor (20/pág);
   Server Components; payload enxuto.
-- **Supabase só para auth/usuários**; dados financeiros ficam na planilha (sem mirror em
-  banco no MVP).
+- **Supabase para auth/usuários + avisos de pagamento**: dados financeiros ficam na planilha
+  (sem mirror em banco). A ÚNICA tabela Postgres é `pagamentos_avisos` (feature 004/005, RLS
+  deny-all, acesso só pelo backend via service role) — o quadro de avisos de pagamento.
+- **Fuso de negócio**: o "hoje" financeiro (status pago/a_vencer/vencido e "dias" dos lotes) é
+  calculado em **America/Sao_Paulo** (`domain/datas.py`), independente do fuso do servidor (UTC
+  no VPS) — senão o status virava um dia cedo entre ~21h e 00h BRT.
 
 ## Fonte de dados (1 planilha, 3 abas)
 
-`SHEET_ID=1y99JgtSuAHF4vo3PMZ03A1GU84k_wCohPymdt8n8-LE`:
+`SHEET_ID` (valor real só no `.env`, nunca versionado):
 - **Dados Tratados** (`gid=278430548`) — fonte das **solicitações** (única com `QUITADO`,
   `Cashback`, `Unidade`, `Contratante`). Parceiro = **`Contratante`**. Status = `QUITADO` +
   `Data de Quitação`. Hoje **40 linhas**.
@@ -65,12 +77,16 @@ Rápido:
   · `pnpm dev`. Build: `pnpm build`. Service Account deste projeto:
   `portal-medflow-backend@automacao-medflow-lumina.iam.gserviceaccount.com` (compartilhar a
   planilha como Leitor com esse e-mail).
-- **Supabase**: aplicar `backend/supabase/migrations/0001_app_users.sql` (tabela `app_users`
-  + enum de papel + RLS de leitura própria).
+- **Supabase**: aplicar as migrations de `supabase/migrations/` (pela ordem do nome):
+  `20260629_pagamentos_avisos.sql`, `20260630_pagamentos_avisos_data_vencimento.sql`,
+  `20260701_pagamentos_avisos_rebate.sql`. (Papéis/contratante vivem no `app_metadata` do
+  Auth — **não** há tabela `app_users`.)
 
-## Estado da implementação (2026-06-25)
+## Estado da implementação (2026-07-02)
 
-Stack construída e testada localmente (52 testes de backend verdes; frontend typecheck OK).
+Stack construída e testada localmente (**114 testes de backend verdes**; ruff limpo; frontend
+typecheck OK). Features entregues: 001 (portal base), 002 (filtros dinâmicos), 003 (vínculo
+Contratante/Unidade por config), 004 (avisos de pagamento por lote), 005 (rebate no pagamento).
 
 **Backend (FastAPI) — camadas (Princípio VII)**: `routers/` → `services/` → `domain/` →
 integrações (`sheets/`, `auth/`). Isolamento (R-001) concentrado em `domain/scope.py` e
@@ -86,6 +102,10 @@ aplicado nos serviços **antes** de serializar.
 | `GET /api/overview?ano=&meses=` | parceiro/gestor | métricas (incl. Ticket Médio) + série mensal (`aaaa-mm`), recortadas pelo toggle ano/mês |
 | `GET/POST/PUT/DELETE /api/admin/parceiros` | gestor | CRUD de logins (Supabase Admin) |
 | `GET /api/admin/pendencias` | gestor | "Pendências de Dados" (motivos + linha de origem) |
+| `GET /api/filtros/opcoes` | parceiro/gestor | opções escopadas dos filtros dinâmicos (feature 002) |
+| `GET/PUT /api/admin/{partners,parceiros,contratantes,unidades}` | gestor | config do Parceiro=Contratante: cor + allowlist de Unidades + rebate (features 003/005) |
+| `POST/DELETE /api/pagamentos/avisos` · `GET /api/pagamentos/meus` | parceiro | envia/cancela aviso de pagamento por lote; estado dos avisos (feature 004) |
+| `GET /api/pagamentos` · `POST /api/pagamentos/avisos/{id}/{verificar,rejeitar,reabrir}` | gestor | quadro de avisos + verificar/rejeitar/reabrir |
 
 Erros: formato único `{ "error": { "code", "message" } }` (pt-BR). Dinheiro trafega como
 string decimal **quantizada a centavos** (`money_str`, evita ruído de float do Sheets).
@@ -141,8 +161,10 @@ overview, guarda de admin (403), exclusão de pendências + self-healing, E2E de
 
 ## Pendências em aberto
 
-1. **Segurança**: planilha ainda pública → tornar privada + Service Account. Revogar o
-   OAuth secret que foi exposto. (Passo a passo: `quickstart.md §1`.)
+1. **Segurança (resolvido em 2026-07-02)**: a planilha foi **restringida** (não é mais
+   pública); acesso só pela Service Account (Leitor). O `SHEET_ID` real foi removido do
+   `.env.example` e da doc — vive só no ambiente. (Confirmar que o OAuth secret exposto foi
+   revogado, se ainda pendente.)
 2. **Dependência Next.js**: fixada em `14.2.18` (atende "Next 14+" do plano). O pnpm sinaliza
    um aviso de segurança nessa versão → atualizar para o último patch da linha 14.2.x antes
    do deploy em produção.

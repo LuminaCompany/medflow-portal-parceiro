@@ -52,6 +52,8 @@ pagamento vira **Valor a Pagar = Originação − Rebate**, onde Rebate = Σ `ca
 sheet, já existente) das solicitações pendentes do lote. Abate **só** no modal de pagamento
 (parceiro) e no card de verificação (gestor) — Dashboard/Vencimentos seguem em Originação cheia.
 O `rebate` é congelado no snapshot do aviso (0 p/ quem não tem o serviço; retrocompatível).
+- ADR: `docs/adr/0004-rebate-no-pagamento.md` (bordas: rebate>valor bloqueia; eco de valor no
+  envio; desligar persiste apesar do merge raso do GoTrue; toggle não altera aviso congelado)
 - Migration: `supabase/migrations/20260701_pagamentos_avisos_rebate.sql` (coluna `rebate`)
 - Backend: `rebate_ativo` em `AppUser`/`auth/supabase.py` + `partners.py`; `snapshot_lote`/`_serializa`
   em `pagamentos.py`; `rebate`/`valor_a_pagar` por lote em `vencimentos.py`

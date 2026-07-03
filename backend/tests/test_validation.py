@@ -5,6 +5,7 @@ from decimal import Decimal
 
 from app.domain.validation import (
     MOTIVO_CLIENTE_AUSENTE,
+    MOTIVO_CODIGO_AUSENTE,
     MOTIVO_CLIENTE_SEM_CADASTRO,
     MOTIVO_CONTRATANTE_DIVERGENTE,
     MOTIVO_CONTRATANTE_FALTANDO,
@@ -46,6 +47,13 @@ def test_linha_valida_nao_vira_pendencia():
 def test_cliente_ausente():
     _, pend = particiona([_valida(cliente=None)], CADASTRO, HOJE)
     assert MOTIVO_CLIENTE_AUSENTE in pend[0].motivos
+
+
+def test_codigo_ausente_vira_pendencia_sem_derrubar_carga():
+    """Código vazio (com cliente+valor preenchidos) → quarentena, não AssertionError na carga."""
+    validas, pend = particiona([_valida(codigo=None)], CADASTRO, HOJE)
+    assert len(validas) == 0
+    assert MOTIVO_CODIGO_AUSENTE in pend[0].motivos
 
 
 def test_contratante_faltando():

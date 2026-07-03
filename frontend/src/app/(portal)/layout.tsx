@@ -41,7 +41,7 @@ const NAV: NavDef[] = [
 export default function PortalLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const router = useRouter();
-  const { me, loading, error } = useMe();
+  const { me, loading, error, naoAutenticado } = useMe();
   const [verificandoSessao, setVerificandoSessao] = useState(true);
   const [collapsed, setCollapsed] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
@@ -65,10 +65,11 @@ export default function PortalLayout({ children }: { children: React.ReactNode }
     });
   }, [router]);
 
-  // /api/me falhou (token inválido / sem perfil) → volta ao login com aviso de sessão.
+  // Só desloga quando o backend RECUSA a identidade (401). Falha transitória (500/rede) mostra
+  // tela de erro com "tentar de novo" — não expulsa quem tem sessão Supabase válida.
   useEffect(() => {
-    if (!loading && error) router.replace("/login?expirou=1");
-  }, [loading, error, router]);
+    if (!loading && naoAutenticado) router.replace("/login?expirou=1");
+  }, [loading, naoAutenticado, router]);
 
   const itens = useMemo(() => (me ? NAV.filter((n) => n.roles.includes(me.role)) : []), [me]);
   const titulo = useMemo(
@@ -76,7 +77,10 @@ export default function PortalLayout({ children }: { children: React.ReactNode }
     [itens, pathname],
   );
 
-  if (verificandoSessao || loading || !me) return <TelaCarregando />;
+  if (verificandoSessao || loading) return <TelaCarregando />;
+  // Erro transitório (backend 5xx / rede) com sessão válida → tela de erro, não logout nem hang.
+  if (error && !naoAutenticado) return <TelaErro mensagem={error} />;
+  if (!me) return <TelaCarregando />; // naoAutenticado: redirecionando para /login
 
   return (
     <TooltipProvider delayDuration={200}>
@@ -153,6 +157,27 @@ export default function PortalLayout({ children }: { children: React.ReactNode }
       </div>
       <Toaster richColors position="top-center" />
     </TooltipProvider>
+  );
+}
+
+function TelaErro({ mensagem }: { mensagem: string }) {
+  return (
+    <div className="grid min-h-svh place-items-center bg-background px-6">
+      <div className="flex max-w-md flex-col items-center gap-4 text-center">
+        <TriangleAlert className="size-10 text-warning" />
+        <div>
+          <p className="font-display text-lg font-bold">Não foi possível carregar o portal</p>
+          <p className="mt-1 text-sm text-muted-foreground">{mensagem}</p>
+        </div>
+        <button
+          type="button"
+          onClick={() => window.location.reload()}
+          className="rounded-xl bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground transition-colors hover:bg-primary/90"
+        >
+          Tentar de novo
+        </button>
+      </div>
+    </div>
   );
 }
 

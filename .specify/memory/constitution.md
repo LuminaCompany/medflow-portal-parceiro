@@ -1,13 +1,17 @@
 <!--
 SYNC IMPACT REPORT
 ==================
-Versão: (inexistente) → 1.0.0 → 1.0.1 → 1.1.0
+Versão: (inexistente) → 1.0.0 → 1.0.1 → 1.1.0 → 1.2.0
 Tipo de mudança: Ratificação inicial (MAJOR — primeira versão).
   Emenda 1.0.1 (PATCH, 2026-06-25): correção factual de deploy — backend migra de
   Vercel para VPS/EasyPanel; frontend permanece Vercel. Sem mudança de princípio.
   Emenda 1.1.0 (MINOR, 2026-06-25): novo Princípio VII (Estrutura do Repositório &
   Organização em Camadas) — exige hierarquia de pastas (backend/, frontend/, …) e
   organização em módulos/classes coesos e hierárquicos, com guardrail KISS.
+  Emenda 1.2.0 (MINOR, 2026-07-02): exceção de escrita governada no Princípio III — o
+  canal de **aviso de pagamento** (features 004/005) é a ÚNICA escrita iniciada pelo
+  parceiro, não toca os dados financeiros (planilha/CRM) e é regida por ADR 0003/0004.
+  Reafirma que os dados financeiros seguem somente leitura.
 
 Princípios definidos:
   1. Código Limpo & Legibilidade (Clean Code)
@@ -35,7 +39,7 @@ Templates dependentes:
 Docs de runtime sincronizados:
   ✅ PRODUCT.md   — referenciado (fonte de propósito/usuários)
   ✅ DESIGN.md    — referenciado (fonte do sistema visual)
-  ⚠ DOCUMENTATION.MD — vazio; Princípio V exige mantê-lo atualizado
+  ✅ DOCUMENTATION.MD — atualizado em 2026-07-02 para o estado das features 002–005
 
 TODOs deferidos: nenhum.
 -->
@@ -93,6 +97,14 @@ A solução mais simples que resolve o problema real é a correta.
 - Este é um portal de **leitura**: a interface NÃO MUST oferecer ações que não
   existem na operação (sem botões de gestão de médicos/contratos). Simplicidade
   de produto reflete simplicidade de código.
+
+**Exceção de escrita governada (emenda 1.2.0):** os **dados financeiros** (originação,
+rebate, status de pagamento) seguem **somente leitura** — a fonte é a planilha, alterada
+à mão pelo gestor. A ÚNICA escrita iniciada pelo parceiro é o **aviso de pagamento**
+(feature 004: "avisei que paguei este lote"; o gestor verifica/rejeita) e sua config de
+**rebate** (feature 005). Esse canal NÃO altera a planilha nem o CRM, vive numa tabela
+própria (`pagamentos_avisos`, RLS deny-all, service role) e é regido por ADR 0003/0004.
+Qualquer nova escrita fora desse canal MUST ser justificada em ADR e emenda desta seção.
 
 **Racional:** simplicidade é o que mantém um projeto pequeno entregável e
 auditável por uma fintech regulada.
@@ -224,4 +236,4 @@ isolamento por `Contratante` (Princípio VI) é garantido e facilitam onboarding
 - **Conformidade:** revisões e planos devem checar aderência a estes princípios;
   complexidade não justificada MUST ser simplificada ou explicitada.
 
-**Versão:** 1.1.0 | **Ratificada em:** 2026-06-24 | **Última emenda:** 2026-06-25
+**Versão:** 1.2.0 | **Ratificada em:** 2026-06-24 | **Última emenda:** 2026-07-02

@@ -10,10 +10,13 @@ só o 1º load (cache frio) bloqueia. Isso mata o pico de latência que existia 
 todas as requisições travavam no lock durante o reload no fim de cada janela de TTL.
 """
 
+import logging
 import time
 from collections.abc import Callable
 from threading import Lock, Thread
 from typing import Generic, TypeVar
+
+logger = logging.getLogger(__name__)
 
 T = TypeVar("T")
 
@@ -59,6 +62,9 @@ class TTLCache(Generic[T]):
             value = loader()
         except Exception:
             # Falha no refresh: mantém o valor velho; tenta de novo no próximo request.
+            # Logar é essencial — sem isso, a staleness fica invisível (dívida vencida
+            # some da tela se o refresh falha em silêncio por muitas janelas seguidas).
+            logger.warning("Refresh do cache falhou; servindo snapshot anterior.", exc_info=True)
             with self._lock:
                 self._refreshing = False
             return

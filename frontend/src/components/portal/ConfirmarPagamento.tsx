@@ -15,7 +15,7 @@ import {
 } from "@/components/ui/dialog";
 import { BadgePrazo } from "@/components/portal/BadgePrazo";
 import { ApiError, apiSend } from "@/lib/api";
-import { formatData, formatMoeda } from "@/lib/format";
+import { formatData, formatDataHora, formatMoeda } from "@/lib/format";
 import type { PagamentoAviso, UnidadeVencimentosParceiro } from "@/lib/types";
 
 /**
@@ -88,6 +88,9 @@ function BotaoPagar({
       await apiSend("POST", "/api/pagamentos/avisos", {
         unidade: unidade.unidade,
         data_vencimento: unidade.data_vencimento,
+        // Eco do valor exibido: o backend barra o envio se o snapshot recomputado divergir
+        // (dado mudou no sheet ou filtro ativo) em vez de congelar um valor não confirmado.
+        valor_esperado: unidade.total_pendente,
       });
       toast.success("Aviso de pagamento enviado aos gestores.");
       setAberto(false);
@@ -266,7 +269,7 @@ function AvisoEnviado({ aviso, onMutate }: { aviso: PagamentoAviso; onMutate: ()
               </>
             )}
             <dt className="text-muted-foreground">Enviado em</dt>
-            <dd className="text-right font-medium">{formatData(aviso.created_at?.slice(0, 10))}</dd>
+            <dd className="text-right font-medium">{formatDataHora(aviso.created_at)}</dd>
           </dl>
 
           <DialogFooter>

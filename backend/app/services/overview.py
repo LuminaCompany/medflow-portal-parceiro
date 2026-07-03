@@ -9,6 +9,7 @@ from collections import defaultdict
 from datetime import date
 from decimal import Decimal
 
+from app.domain.datas import hoje as hoje_operacao
 from app.domain.filtros.engine import FiltroAplicado
 from app.domain.filtros.engine import aplica as aplica_filtros
 from app.domain.models import AppUser, Solicitacao
@@ -18,10 +19,17 @@ from app.services.serialize import money_str
 
 
 def _ano_mes(s: Solicitacao) -> tuple[int, int]:
-    """(ano, mês) de originação. Usa `mes_originacao` (`mm/aaaa`); senão deriva de `data_pedido`."""
+    """(ano, mês) de originação. Usa `mes_originacao` (`mm/aaaa`); senão deriva de `data_pedido`.
+
+    `mes_originacao` é texto livre não validado no sheet: se vier ilegível (ex.: `Junho/2026`),
+    cai no fallback por `data_pedido` (sempre presente nas válidas) em vez de derrubar o endpoint.
+    """
     if s.mes_originacao and "/" in s.mes_originacao:
         mm, aaaa = s.mes_originacao.split("/", 1)
-        return int(aaaa.strip()), int(mm.strip())
+        try:
+            return int(aaaa.strip()), int(mm.strip())
+        except ValueError:
+            pass  # célula malformada → usa a data do pedido
     return s.data_pedido.year, s.data_pedido.month
 
 
@@ -44,7 +52,7 @@ def overview(
     recorte por `ano` (default = ano corrente) e, opcionalmente, `meses` (toggle "por mês";
     vazio/None = ano inteiro). Cards e série refletem o recorte.
     """
-    hoje = hoje or date.today()
+    hoje = hoje or hoje_operacao()
     ano_ref = ano if ano is not None else hoje.year
     meses_sel = set(meses) if meses else None  # None = ano inteiro
     periodo_ativo = data_de is not None or data_ate is not None

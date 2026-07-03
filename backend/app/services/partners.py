@@ -243,14 +243,18 @@ class PartnersService:
                 meta["cor"] = cor_final
             if unidades_final is not None:
                 meta["unidades"] = unidades_final
-            if rebate_final:
-                meta["rebate_ativo"] = True
+            # SEMPRE gravar a chave (mesmo False): o merge raso do GoTrue só sobrescreve o que é
+            # reenviado. Omitir quando False deixava o `true` antigo sobreviver → desligar o rebate
+            # nunca persistia e o parceiro seguia pagando Originação − Rebate.
+            meta["rebate_ativo"] = bool(rebate_final)
             try:
                 self._admin.auth.admin.update_user_by_id(
                     str(getattr(login, "id", "")), {"app_metadata": meta}
                 )
             except Exception as exc:  # noqa: BLE001
-                raise PartnersError("Não foi possível atualizar a configuração do parceiro.") from exc
+                raise PartnersError(
+                    "Não foi possível atualizar a configuração do parceiro."
+                ) from exc
         return {
             "contratante": contratante,
             "cor": cor if cor is not None else self._cor_canonica(logins, contratante),
@@ -275,7 +279,9 @@ class PartnersService:
 
     def _logins_da_contratante(self, contratante: str) -> list:
         alvo = contratante.strip()
-        return [u for u in self._parceiros() if (_app_meta(u).get("contratante") or "").strip() == alvo]
+        return [
+            u for u in self._parceiros() if (_app_meta(u).get("contratante") or "").strip() == alvo
+        ]
 
     @staticmethod
     def _cor_canonica(logins: list[object], contratante: str) -> str | None:

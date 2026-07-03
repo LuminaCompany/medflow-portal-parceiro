@@ -11,6 +11,7 @@ from app.domain.filtros.engine import FiltroAplicado
 from app.domain.filtros.engine import aplica as aplica_filtros
 from app.domain.models import AppUser, Solicitacao
 from app.domain.scope import filtra_por_escopo, is_gestor
+from app.domain.status import casa_busca_status
 from app.services.cores import cor_para
 from app.services.dataset import Dataset
 from app.services.serialize import money_str, serializa_medico, serializa_solicitacao
@@ -38,12 +39,12 @@ def _aplica_escopo_e_filtros(
 
 
 def _casa_busca(s: Solicitacao, termo: str) -> bool:
-    """Busca por código, cliente ou status (label/chave)."""
+    """Busca por código, cliente ou status. O status casa os rótulos EXIBIDOS na UI
+    ("Vencido"/"A Vencer") além da chave interna — o usuário busca o que vê."""
     return (
         termo in s.codigo.lower()
         or termo in s.cliente.lower()
-        or termo in s.status.lower()
-        or termo in s.status_label.lower()
+        or casa_busca_status(s.status, termo)
     )
 
 

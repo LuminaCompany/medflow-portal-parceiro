@@ -88,3 +88,12 @@ def test_gestor_soma_global():
     ov = overview(DATASET, _user("gestor", None), hoje=HOJE)
     assert ov["cards"]["total_solicitacoes"] == 4
     assert ov["cards"]["valor_total"] == "13499.00"
+
+
+def test_mes_originacao_malformado_nao_derruba_endpoint():
+    """mes_originacao ilegível ('Junho/2026') cai no fallback por data_pedido, sem ValueError."""
+    ruim = _sol(BESA, "7", "Dr. Ana", "a_pagar", "100", "Junho/2026")
+    ov = overview([ruim], _user("parceiro", BESA), hoje=HOJE)
+    # data_pedido é 2026-01-15 (fallback) → série no mês 2026-01, sem crash.
+    assert ov["cards"]["total_solicitacoes"] == 1
+    assert [p["mes"] for p in ov["serie_mensal"]] == ["2026-01"]

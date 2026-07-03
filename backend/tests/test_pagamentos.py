@@ -52,3 +52,17 @@ def test_snapshot_sem_pendentes_levanta_erro():
     sols = [_sol("3", "pago", "700", "70")]
     with pytest.raises(PagamentoAvisoError):
         snapshot_lote(sols, rebate_ativo=True)
+
+
+def test_snapshot_rebate_maior_que_valor_bloqueia():
+    """Rebate > Originação (cashback digitado errado) → bloqueia (Valor a Pagar negativo, ADR 0004)."""
+    sols = [_sol("1", "atrasado", "100", "150")]  # cashback 150 > valor 100
+    with pytest.raises(PagamentoAvisoError):
+        snapshot_lote(sols, rebate_ativo=True)
+
+
+def test_snapshot_rebate_maior_que_valor_ok_sem_servico():
+    """Sem serviço de rebate, o cashback alto é ignorado (rebate=0) — não bloqueia."""
+    sols = [_sol("1", "atrasado", "100", "150")]
+    valor, rebate, _ = snapshot_lote(sols, rebate_ativo=False)
+    assert valor == Decimal("100") and rebate == Decimal("0")

@@ -2,7 +2,7 @@
 
 from datetime import date
 
-from fastapi import APIRouter, Query, Request
+from fastapi import APIRouter, HTTPException, Query, Request, status
 
 from app.auth.deps import CurrentUser
 from app.domain.filtros.engine import parse as parse_filtros
@@ -20,12 +20,21 @@ def get_overview(
     user: CurrentUser,
     ano: int | None = Query(None, description="ano de originação; default = ano corrente"),
     meses: str | None = Query(None, description="meses 1-12 (csv); vazio = ano inteiro"),
-    data_de: date | None = Query(None, description="início do período de originação (ISO aaaa-mm-dd); substitui ano/meses"),
-    data_ate: date | None = Query(None, description="fim do período de originação (ISO aaaa-mm-dd); inclusivo"),
+    data_de: date | None = Query(None, description="início do período (ISO); substitui ano/meses"),
+    data_ate: date | None = Query(None, description="fim do período (ISO); inclusivo"),
 ) -> dict:
     papel = "gestor" if is_gestor(user) else "parceiro"
     filtros = parse_filtros(request.query_params, ABA_OVERVIEW, papel)
-    meses_sel = [int(m) for m in meses.split(",") if m.strip()] if meses else None
+    try:
+        meses_sel = [int(m) for m in meses.split(",") if m.strip()] if meses else None
+    except ValueError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail={
+                "code": "invalid_request",
+                "message": "Parâmetro 'meses' deve ser uma lista de números.",
+            },
+        ) from exc
     dataset = get_dataset_service().get()
     return overview(
         dataset.validas,

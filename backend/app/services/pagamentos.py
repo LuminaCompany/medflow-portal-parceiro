@@ -14,13 +14,14 @@ tabela; o frontend jamais fala com o Postgres direto.
 """
 
 from collections import defaultdict
-from datetime import date, datetime, timezone
+from datetime import UTC, date, datetime
 from decimal import Decimal
 
 from supabase import Client
 
+from app.domain.lotes import totais_do_lote
 from app.domain.models import Solicitacao
-from app.domain.status import STATUS_A_PAGAR, STATUS_ATRASADO
+from app.domain.status import is_pending
 from app.services.serialize import money_str
 
 TABELA = "pagamentos_avisos"
@@ -46,28 +47,24 @@ class PagamentoAvisoError(Exception):
     """Falha de regra de negócio do aviso (mapeada para 400 no router)."""
 
 
-def _pendente(s: Solicitacao) -> bool:
-    return s.status in (STATUS_ATRASADO, STATUS_A_PAGAR)
-
-
 def snapshot_lote(
     sols_do_lote: list[Solicitacao], rebate_ativo: bool = False
 ) -> tuple[Decimal, Decimal, list[str]]:
     """Congela o que o aviso cobre: total pendente + rebate + códigos das solicitações pendentes.
 
-    O lote = (unidade, data de vencimento). Pagas não entram (não é o que se paga agora);
-    `valor` = Σ Originação das pendentes do lote. Quando a Contratante tem o serviço de rebate
-    (feature 005), `rebate` = Σ cashback das mesmas pendentes; senão 0 (paga a Originação cheia).
-    O Valor a Pagar (= valor − rebate) é derivado na serialização. Levanta erro se não houver
-    nada pendente (nada a avisar).
+    O lote = (unidade, data de vencimento). Usa `totais_do_lote` (mesma regra da aba Vencimentos):
+    `valor` = Σ Originação das pendentes; `rebate` = Σ cashback delas quando a Contratante tem o
+    serviço (feature 005), senão 0. Bloqueia se não houver pendência ou se o rebate exceder o valor
+    (Valor a Pagar negativo = erro de dado; ADR 0004).
     """
-    pendentes = [s for s in sols_do_lote if _pendente(s)]
-    if not pendentes:
+    totais = totais_do_lote(sols_do_lote, rebate_ativo)
+    if not totais.codigos:
         raise PagamentoAvisoError("O lote não possui valores pendentes para avisar.")
-    valor = sum((s.valor for s in pendentes), Decimal("0"))
-    rebate = sum((s.cashback for s in pendentes), Decimal("0")) if rebate_ativo else Decimal("0")
-    codigos = [s.codigo for s in pendentes]
-    return valor, rebate, codigos
+    if totais.rebate > totais.valor:
+        raise PagamentoAvisoError(
+            "Rebate do lote maior que a Originação — verifique os dados antes de avisar."
+        )
+    return totais.valor, totais.rebate, totais.codigos
 
 
 def _serializa(row: dict) -> dict:
@@ -132,7 +129,7 @@ def monta_visao_gestor(
         lambda: defaultdict(lambda: Decimal("0"))
     )
     for s in validas:
-        if s.unidade and _pendente(s):
+        if s.unidade and is_pending(s.status):
             pend[s.contratante][(s.unidade, s.data_vencimento.isoformat())] += s.valor
 
     # Avisos agrupados (ignora cancelados). Chave do lote ativo = (unidade, data ISO).
@@ -268,7 +265,7 @@ class PagamentosService:
             raise PagamentoAvisoError("Aviso não encontrado.")
         if aviso["status"] != AVISO_PENDENTE:
             raise PagamentoAvisoError("Só é possível cancelar um aviso ainda não verificado.")
-        self._update(aviso_id, {"status": AVISO_CANCELADO})
+        self._update(aviso_id, {"status": AVISO_CANCELADO}, esperado=AVISO_PENDENTE)
 
     def verificar(self, aviso_id: str) -> dict:
         """Gestor confirma o pagamento do aviso (pendente → verificado)."""
@@ -279,9 +276,10 @@ class PagamentosService:
             aviso_id,
             {
                 "status": AVISO_VERIFICADO,
-                "verificado_at": datetime.now(timezone.utc).isoformat(),
+                "verificado_at": datetime.now(UTC).isoformat(),
                 "motivo_rejeicao": None,
             },
+            esperado=AVISO_PENDENTE,
         )
 
     def rejeitar(self, aviso_id: str, motivo: str) -> dict:
@@ -292,14 +290,20 @@ class PagamentosService:
         motivo = (motivo or "").strip()
         if not motivo:
             raise PagamentoAvisoError("Informe o motivo da rejeição.")
-        return self._update(aviso_id, {"status": AVISO_REJEITADO, "motivo_rejeicao": motivo})
+        return self._update(
+            aviso_id,
+            {"status": AVISO_REJEITADO, "motivo_rejeicao": motivo},
+            esperado=AVISO_PENDENTE,
+        )
 
     def reabrir(self, aviso_id: str) -> dict:
         """Gestor desfaz a verificação (verificado → pendente) — corrige clique errado."""
         aviso = self._exigir(aviso_id)
         if aviso["status"] != AVISO_VERIFICADO:
             raise PagamentoAvisoError("Só um aviso verificado pode ser reaberto.")
-        return self._update(aviso_id, {"status": AVISO_PENDENTE, "verificado_at": None})
+        return self._update(
+            aviso_id, {"status": AVISO_PENDENTE, "verificado_at": None}, esperado=AVISO_VERIFICADO
+        )
 
     # ---- Internos ----------------------------------------------------------------
 
@@ -313,13 +317,20 @@ class PagamentosService:
             raise PagamentoAvisoError("Aviso não encontrado.")
         return aviso
 
-    def _update(self, aviso_id: str, attrs: dict) -> dict:
+    def _update(self, aviso_id: str, attrs: dict, esperado: str | None = None) -> dict:
+        """Atualiza o aviso. `esperado` fecha a corrida read-then-write: o UPDATE só casa se o
+        status ainda for o esperado (guarda atômica no Postgres) — sem isso, um cancelar do
+        parceiro concorrente com um verificar do gestor podia produzir cancelado→verificado."""
         try:
-            resp = self._table().update(attrs).eq("id", aviso_id).execute()
+            query = self._table().update(attrs).eq("id", aviso_id)
+            if esperado is not None:
+                query = query.eq("status", esperado)
+            resp = query.execute()
         except Exception as exc:  # noqa: BLE001
             raise PagamentoAvisoError("Não foi possível atualizar o aviso.") from exc
         if not resp.data:
-            raise PagamentoAvisoError("Aviso não encontrado.")
+            # 0 linhas: o aviso mudou de estado entre a leitura e a escrita (corrida) ou sumiu.
+            raise PagamentoAvisoError("O aviso mudou de estado. Recarregue e tente novamente.")
         return _serializa(resp.data[0])
 
 

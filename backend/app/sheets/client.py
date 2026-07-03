@@ -6,12 +6,20 @@ ambiente (`GOOGLE_SERVICE_ACCOUNT_JSON`), nunca do código nem do frontend.
 
 import json
 
+import google_auth_httplib2
+import httplib2
 from google.oauth2.service_account import Credentials
 from googleapiclient.discovery import build
 
 from app.config import Settings
 
 _SCOPES = ["https://www.googleapis.com/auth/spreadsheets.readonly"]
+
+# Timeout de rede (s) da chamada ao Sheets. Crucial: o load FRIO roda sob o lock do cache —
+# sem timeout (httplib2 default = infinito) uma conexão pendurada travaria TODAS as requisições.
+_HTTP_TIMEOUT_S = 30
+# Retenta erros transitórios (429/5xx) com backoff exponencial embutido do googleapiclient.
+_NUM_RETRIES = 3
 
 
 class SheetsClient:
@@ -25,13 +33,17 @@ class SheetsClient:
         if self._service is None:
             info = json.loads(self._settings.google_service_account_json)
             creds = Credentials.from_service_account_info(info, scopes=_SCOPES)
+            # HTTP com timeout explícito (o build default não tem) — evita lock preso pra sempre.
+            authed_http = google_auth_httplib2.AuthorizedHttp(
+                creds, http=httplib2.Http(timeout=_HTTP_TIMEOUT_S)
+            )
             # cache_discovery=False evita warning/IO de disco em runtime serverless/container.
             # static_discovery=True usa o doc de discovery embutido na lib → sem round-trip de
             # rede pra montar o cliente (economia no cold start do container).
             self._service = build(
                 "sheets",
                 "v4",
-                credentials=creds,
+                http=authed_http,
                 cache_discovery=False,
                 static_discovery=True,
             )
@@ -61,7 +73,7 @@ class SheetsClient:
                 dateTimeRenderOption="FORMATTED_STRING",
                 fields="valueRanges(values)",
             )
-            .execute()
+            .execute(num_retries=_NUM_RETRIES)
         )
         ranges = result.get("valueRanges", [])
 

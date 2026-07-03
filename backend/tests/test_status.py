@@ -6,6 +6,7 @@ from app.domain.status import (
     STATUS_A_PAGAR,
     STATUS_ATRASADO,
     STATUS_PAGO,
+    casa_busca_status,
     status,
     status_label,
 )
@@ -36,3 +37,14 @@ def test_labels():
     assert status_label(STATUS_PAGO) == "Pago"
     assert status_label(STATUS_A_PAGAR) == "A Pagar"
     assert status_label(STATUS_ATRASADO) == "Atrasado"
+
+
+def test_busca_status_casa_rotulos_da_ui():
+    """O usuário busca o que VÊ: 'vencido'→atrasado, 'a vencer'→a_pagar (rótulos do front)."""
+    assert casa_busca_status(STATUS_ATRASADO, "vencido")
+    assert casa_busca_status(STATUS_A_PAGAR, "a vencer")
+    assert casa_busca_status(STATUS_PAGO, "pago")
+    # a chave interna também casa
+    assert casa_busca_status(STATUS_ATRASADO, "atrasado")
+    # não casa termo de outro status
+    assert not casa_busca_status(STATUS_PAGO, "vencido")

@@ -8,14 +8,17 @@ from collections import defaultdict
 from datetime import date, timedelta
 from decimal import Decimal
 
+from app.domain.datas import hoje as hoje_operacao
 from app.domain.filtros.engine import FiltroAplicado
 from app.domain.filtros.engine import aplica as aplica_filtros
+from app.domain.lotes import totais_do_lote
 from app.domain.models import AppUser, Solicitacao
 from app.domain.scope import filtra_por_escopo
 from app.domain.status import (
     STATUS_A_PAGAR,
     STATUS_ATRASADO,
     STATUS_PAGO,
+    is_pending,
     status_label,
 )
 from app.services.serialize import money_str, serializa_solicitacao
@@ -23,10 +26,6 @@ from app.services.serialize import money_str, serializa_solicitacao
 # Janela do filtro "próximos" (RF-016).
 PROXIMOS_WINDOWS = {"2d": 2, "1sem": 7, "2sem": 14}
 PROXIMOS_DEFAULT = "1sem"
-
-
-def _pendente(s: Solicitacao) -> bool:
-    return s.status in (STATUS_A_PAGAR, STATUS_ATRASADO)
 
 
 def vencimentos_parceiro(
@@ -37,7 +36,7 @@ def vencimentos_parceiro(
     hoje: date | None = None,
 ) -> dict:
     """Cards + atrasados/próximos/pagos do parceiro autenticado (escopado + filtrado)."""
-    hoje = hoje or date.today()
+    hoje = hoje or hoje_operacao()
     escopadas = aplica_filtros(filtra_por_escopo(validas, user), filtros or [])
 
     dias = PROXIMOS_WINDOWS.get(proximos, PROXIMOS_WINDOWS[PROXIMOS_DEFAULT])
@@ -48,7 +47,7 @@ def vencimentos_parceiro(
     pagos = [s for s in escopadas if s.status == STATUS_PAGO]
     proximos_lista = [s for s in a_pagar if hoje <= s.data_vencimento <= limite]
 
-    total_pendente = sum((s.valor for s in escopadas if _pendente(s)), Decimal("0"))
+    total_pendente = sum((s.valor for s in escopadas if is_pending(s.status)), Decimal("0"))
     em_atraso = sum((s.valor for s in atrasados), Decimal("0"))
 
     # Ordenação útil: atrasados/próximos por vencimento ascendente; pagos por quitação desc.
@@ -92,7 +91,7 @@ def _unidades_parceiro(
 
     unidades = []
     for unidade, lista in por_unidade.items():
-        pendentes = [s for s in lista if _pendente(s)]
+        pendentes = [s for s in lista if is_pending(s.status)]
         total_pendente = sum((s.valor for s in pendentes), Decimal("0"))
         unidades.append((unidade, lista, pendentes, total_pendente))
     unidades.sort(key=lambda t: (-t[3], t[0]))
@@ -133,9 +132,9 @@ def _linha_lote(
 ) -> dict:
     vencido = sum((s.valor for s in lote if s.status == STATUS_ATRASADO), Decimal("0"))
     a_vencer = sum((s.valor for s in lote if s.status == STATUS_A_PAGAR), Decimal("0"))
-    total = vencido + a_vencer
-    # Rebate só quando a Contratante tem o serviço (feature 005); mesma soma do snapshot do envio.
-    rebate = sum((s.cashback for s in lote), Decimal("0")) if rebate_ativo else Decimal("0")
+    # total_pendente/rebate/valor_a_pagar vêm da MESMA função do snapshot do aviso (domain/lotes)
+    # → o valor no modal de pagamento bate 1:1 com o que o aviso congela (feature 005).
+    totais = totais_do_lote(lote, rebate_ativo)
     lote.sort(key=lambda s: s.codigo)
     return {
         "unidade": unidade,
@@ -143,9 +142,9 @@ def _linha_lote(
         "dias": (hoje - venc).days,  # >0 vencido; <=0 a vencer (0 = hoje)
         "vencido": money_str(vencido),
         "a_vencer": money_str(a_vencer),
-        "total_pendente": money_str(total),
-        "rebate": money_str(rebate),
-        "valor_a_pagar": money_str(total - rebate),
+        "total_pendente": money_str(totais.valor),
+        "rebate": money_str(totais.rebate),
+        "valor_a_pagar": money_str(totais.valor_a_pagar),
         "tudo_pago": False,
         "solicitacoes": [serializa_solicitacao(s) for s in lote],
     }
@@ -181,7 +180,7 @@ def _unidades_do_contratante(sols: list[Solicitacao]) -> list[dict]:
             {
                 "unidade": unidade,
                 "total": sum((s.valor for s in lista), Decimal("0")),
-                "pendente": sum((s.valor for s in lista if _pendente(s)), Decimal("0")),
+                "pendente": sum((s.valor for s in lista if is_pending(s.status)), Decimal("0")),
                 "status": _status_unidade(lista),
                 "solicitacoes": lista,
             }
@@ -194,7 +193,9 @@ def _unidades_do_contratante(sols: list[Solicitacao]) -> list[dict]:
             "total": money_str(g["total"]),
             "status": g["status"],
             "status_label": status_label(g["status"]),
-            "solicitacoes": [serializa_solicitacao(s, incluir_gestor=True) for s in g["solicitacoes"]],
+            "solicitacoes": [
+                serializa_solicitacao(s, incluir_gestor=True) for s in g["solicitacoes"]
+            ],
         }
         for g in grupos
     ]
@@ -210,7 +211,7 @@ def vencimentos_gestor(
     Ordena por total pendente desc; "Tudo pago" cai no fim (pendência 0).
     """
     filtradas = aplica_filtros(validas, filtros or [])
-    pendentes = [s for s in filtradas if _pendente(s)]
+    pendentes = [s for s in filtradas if is_pending(s.status)]
     valor_total = sum((s.valor for s in pendentes), Decimal("0"))
 
     por_contratante: dict[str, list[Solicitacao]] = defaultdict(list)
