@@ -17,6 +17,7 @@ from starlette.exceptions import HTTPException as StarletteHTTPException
 from app.config import get_settings
 from app.routers import (
     auth,
+    conta,
     feedbacks,
     filtros,
     overview,
@@ -106,6 +107,7 @@ def health() -> dict[str, str]:
 
 # Routers — cada feature monta o seu (isolamento garantido no serviço).
 app.include_router(auth.router)
+app.include_router(conta.router)
 app.include_router(vencimentos.router)
 app.include_router(solicitacoes.router)
 app.include_router(overview.router)

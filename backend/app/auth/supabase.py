@@ -89,6 +89,7 @@ def montar_app_user(user: object) -> AppUser:
         nome_exibicao=nome,
         unidades=_unidades_meta(app_meta),
         rebate_ativo=bool(app_meta.get("rebate_ativo", False)),
+        must_change_password=bool(app_meta.get("must_change_password", False)),
     )
 
 

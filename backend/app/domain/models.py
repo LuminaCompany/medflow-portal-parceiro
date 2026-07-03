@@ -94,6 +94,11 @@ class AppUser(BaseModel):
     # parceiro paga Originação − Rebate (Σ cashback do lote). Config do gestor, sincronizada
     # entre os logins (app_metadata). Ausente/False = paga a Originação cheia (comportamento atual).
     rebate_ativo: bool = False
+    # Troca de senha obrigatória no 1º acesso (feature 007): flag `must_change_password` no
+    # `app_metadata`, definida pelo gestor ao criar o login no Supabase. True = portal bloqueia
+    # até o usuário definir uma nova senha (`POST /api/me/trocar-senha`), que limpa a flag.
+    # Ausente/False = acesso normal (back-compat). Aplicada só a gestores no frontend.
+    must_change_password: bool = False
 
 
 class MetricasOverview(BaseModel):

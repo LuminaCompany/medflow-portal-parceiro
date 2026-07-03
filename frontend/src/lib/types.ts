@@ -10,6 +10,7 @@ export interface Me {
   role: Role;
   contratante: string | null;
   rebate_ativo: boolean; // serviço de rebate ativo p/ a Contratante (feature 005)
+  must_change_password: boolean; // troca de senha obrigatória no 1º acesso (feature 007)
 }
 
 export interface Solicitacao {

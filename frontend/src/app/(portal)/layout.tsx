@@ -17,6 +17,7 @@ import {
 
 import { Sidebar, type NavItem } from "@/components/portal/Sidebar";
 import { FeedbackDialog } from "@/components/portal/FeedbackDialog";
+import { TrocarSenhaObrigatoria } from "@/components/portal/TrocarSenhaObrigatoria";
 import { Topbar } from "@/components/portal/Topbar";
 import { PageTransition } from "@/components/portal/PageTransition";
 import { APP_VERSION } from "@/lib/version";
@@ -86,6 +87,9 @@ export default function PortalLayout({ children }: { children: React.ReactNode }
   // Erro transitório (backend 5xx / rede) com sessão válida → tela de erro, não logout nem hang.
   if (error && !naoAutenticado) return <TelaErro mensagem={error} />;
   if (!me) return <TelaCarregando />; // naoAutenticado: redirecionando para /login
+  // Troca de senha obrigatória no 1º acesso (feature 007): bloqueia o portal (só gestor).
+  if (me.role === "gestor" && me.must_change_password)
+    return <TrocarSenhaObrigatoria nome={me.nome_exibicao} />;
 
   return (
     <TooltipProvider delayDuration={200}>

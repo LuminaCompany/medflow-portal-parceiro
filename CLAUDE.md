@@ -78,3 +78,15 @@ TODOS (é o destinatário — sem isolamento por Contratante). NÃO toca sheet/C
 - Backend: `app/services/feedbacks.py`, `app/routers/feedbacks.py` (`/api/feedbacks/*`)
 - Frontend: `components/portal/FeedbackDialog.tsx`, `app/(portal)/feedbacks/page.tsx`,
   `lib/version.ts` (`APP_VERSION`), `components/ui/textarea.tsx`; triggers em `Sidebar.tsx` + `layout.tsx`
+
+## Feature: Troca de senha obrigatória no 1º acesso (007)
+Gestor criado manualmente no Supabase recebe `{"must_change_password": true}` no `app_metadata`.
+No 1º acesso o portal **bloqueia** com a tela "Defina uma nova senha" (só nova + confirmação; não
+pede a atual — a sessão já prova o acesso). Ao salvar, a Admin API grava a nova senha (a antiga
+para de funcionar) e limpa a flag; o front recarrega e libera o portal. Alvo é SEMPRE o dono do
+token (`GestorUser.id`), nunca do corpo — não dá p/ trocar a senha de outro. **Gestor-only**
+(a flag num parceiro é ignorada no gate do front). NÃO toca sheet/CRM/escopo (conta própria).
+- Backend: `must_change_password` em `AppUser`/`auth/supabase.py`; `app/services/conta.py`,
+  `app/routers/conta.py` (`POST /api/me/trocar-senha`, 204); testes em `tests/test_conta.py`
+- Frontend: `Me.must_change_password`; `components/portal/TrocarSenhaObrigatoria.tsx`; gate em
+  `app/(portal)/layout.tsx` (renderiza no lugar do portal, sem como pular)
