@@ -185,12 +185,8 @@ function TelaCarregando() {
   return (
     <div className="grid min-h-svh place-items-center bg-background">
       <div className="flex flex-col items-center gap-4">
-        <span
-          className="grid size-12 animate-pulse place-items-center rounded-2xl font-display text-2xl font-extrabold text-white"
-          style={{ background: "linear-gradient(135deg, oklch(0.58 0.2 292), oklch(0.45 0.16 288))" }}
-        >
-          <span className="italic">m</span>
-        </span>
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img src="/fav.icon.png" alt="MedFlow" className="size-12 animate-pulse" />
         <span className="text-sm text-muted-foreground">Carregando o portal…</span>
       </div>
     </div>
