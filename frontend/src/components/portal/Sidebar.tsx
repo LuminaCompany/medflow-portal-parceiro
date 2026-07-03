@@ -182,13 +182,8 @@ export function Sidebar({
 
         <div className={cn("flex items-center", collapsed ? "justify-center" : "justify-between px-1")}>
           {!collapsed && (
-            <span className="flex items-center gap-1.5">
-              <span className="text-[11px] font-medium tracking-wide text-sidebar-foreground/75">
-                {PAPEL_LABEL[papel] ?? papel}
-              </span>
-              <span className="rounded-full bg-sidebar-accent/60 px-1.5 py-0.5 text-[10px] font-semibold tracking-wide text-sidebar-foreground/60">
-                {APP_VERSION}
-              </span>
+            <span className="rounded-full bg-sidebar-accent/60 px-1.5 py-0.5 text-[10px] font-semibold tracking-wide text-sidebar-foreground/60">
+              {APP_VERSION}
             </span>
           )}
           <ThemeToggle />
@@ -198,7 +193,12 @@ export function Sidebar({
             {APP_VERSION}
           </span>
         )}
-        <AccountMenu nome={nome} papel={PAPEL_LABEL[papel] ?? papel} collapsed={collapsed} />
+        <AccountMenu
+          nome={nome}
+          papel={PAPEL_LABEL[papel] ?? papel}
+          collapsed={collapsed}
+          podeEditarNome={papel === "gestor"}
+        />
       </div>
     </motion.aside>
   );
