@@ -47,13 +47,13 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { apiGet } from "@/lib/api";
 import { useFiltros } from "@/lib/filtros/useFiltros";
 import { formatData, formatMoeda } from "@/lib/format";
-import { cn } from "@/lib/utils";
 import { useMe } from "@/lib/useMe";
 import type {
   ContratanteVencimentos,
   MeusAvisos,
   PagamentoAviso,
   Solicitacao,
+  StatusKey,
   UnidadeVencimentos,
   UnidadeVencimentosParceiro,
   VencimentosGestor,
@@ -171,11 +171,6 @@ function VistaParceiro({
     recarregarAvisos();
   }, [recarregarAvisos]);
 
-  // Escala compartilhada: a maior pendência define 100% da barra (comparável entre unidades).
-  const maxPendente = Math.max(
-    ...unidades.map((u) => Number(u.total_pendente) || 0),
-    1,
-  );
   return (
     <>
       <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
@@ -194,7 +189,7 @@ function VistaParceiro({
 
       <Secao
         titulo="Vencimentos"
-        descricao="Cada barra é um lote (unidade + data de vencimento), pago em separado. Prazo em vermelho quando vencido. Abra para ver as solicitações."
+        descricao="Cada linha é um lote (unidade + data de vencimento), pago em separado. Prazo em vermelho quando vencido. Abra para ver as solicitações."
       >
         {unidades.length > 0 ? (
           <Accordion type="multiple" className="flex flex-col gap-2">
@@ -205,7 +200,6 @@ function VistaParceiro({
                   key={chave}
                   chave={chave}
                   u={u}
-                  maxPendente={maxPendente}
                   aviso={avisos[chave]}
                   rebateAtivo={rebateAtivo}
                   onMutate={recarregarAvisos}
@@ -282,11 +276,6 @@ function VistaGestor({ data }: { data: VencimentosGestor }) {
   const contratantes = data.contratantes ?? [];
   // Toggle de visualização: abrir a contratante por unidade (agregada) ou por lote/vencimento.
   const [agrupar, setAgrupar] = useState<AgruparGestor>("unidade");
-  // Escala compartilhada: a maior pendência define 100% da barra (comparável entre parceiros).
-  const maxPendente = Math.max(
-    ...contratantes.map((c) => Number(c.total_pendente) || 0),
-    1,
-  );
   return (
     <>
       <div className="grid grid-cols-2 gap-4">
@@ -296,7 +285,7 @@ function VistaGestor({ data }: { data: VencimentosGestor }) {
 
       <Secao
         titulo="Vencimentos"
-        descricao="Vencido (vermelho) e a vencer (âmbar) por contratante. Abra para ver as unidades ou os vencimentos."
+        descricao="Status (Vencido / A Vencer) por contratante. Abra para ver as unidades ou os vencimentos."
         acao={
           <Select value={agrupar} onValueChange={(v) => setAgrupar(v as AgruparGestor)}>
             <SelectTrigger className="h-9 w-[190px]" aria-label="Agrupar contratante por">
@@ -314,7 +303,7 @@ function VistaGestor({ data }: { data: VencimentosGestor }) {
         {contratantes.length > 0 ? (
           <Accordion type="multiple" className="flex flex-col gap-2">
             {contratantes.map((c) => (
-              <ContratanteLinha key={c.contratante} c={c} maxPendente={maxPendente} agrupar={agrupar} />
+              <ContratanteLinha key={c.contratante} c={c} agrupar={agrupar} />
             ))}
           </Accordion>
         ) : (
@@ -358,11 +347,9 @@ function lotesDoContratante(c: ContratanteVencimentos): LoteGestor[] {
 
 function ContratanteLinha({
   c,
-  maxPendente,
   agrupar,
 }: {
   c: ContratanteVencimentos;
-  maxPendente: number;
   agrupar: AgruparGestor;
 }) {
   return (
@@ -384,11 +371,9 @@ function ContratanteLinha({
             </>
           ) : (
             <>
-              <BarraSegmentada
-                vencido={Number(c.vencido) || 0}
-                aVencer={Number(c.a_vencer) || 0}
-                max={maxPendente}
-              />
+              {/* Status do contratante (Vencido / A Vencer) no lugar da antiga barra segmentada. */}
+              <StatusLote vencido={Number(c.vencido) || 0} aVencer={Number(c.a_vencer) || 0} />
+              <div className="flex-1" />
               <span className="w-32 shrink-0 text-right text-sm font-semibold tabular-nums">
                 {formatMoeda(c.total_pendente)}
               </span>
@@ -410,19 +395,17 @@ function ContratanteLinha({
   );
 }
 
-// Linha de unidade na visão do parceiro: barra segmentada (igual gestor, nível unidade);
+// Linha de unidade na visão do parceiro: status do lote (Vencido / A Vencer, nível unidade);
 // expandir mostra a tabela de solicitações da unidade (todos os status).
 function UnidadeLinhaParceiro({
   chave,
   u,
-  maxPendente,
   aviso,
   rebateAtivo,
   onMutate,
 }: {
   chave: string;
   u: UnidadeVencimentosParceiro;
-  maxPendente: number;
   aviso?: PagamentoAviso;
   rebateAtivo: boolean;
   onMutate: () => void;
@@ -450,12 +433,9 @@ function UnidadeLinhaParceiro({
               <>
                 {/* Prazo do lote em destaque (vermelho se vencido). */}
                 <BadgePrazo data={u.data_vencimento} />
-                {/* Barra ocupa o espaço restante; prazo já cabe ao lado. */}
-                <BarraSegmentada
-                  vencido={Number(u.vencido) || 0}
-                  aVencer={Number(u.a_vencer) || 0}
-                  max={maxPendente}
-                />
+                {/* Status do lote (Vencido / A Vencer) no lugar da antiga barra segmentada. */}
+                <StatusLote vencido={Number(u.vencido) || 0} aVencer={Number(u.a_vencer) || 0} />
+                <div className="flex-1" />
                 <span className="w-28 shrink-0 text-right text-sm font-semibold tabular-nums">
                   {formatMoeda(u.total_pendente)}
                 </span>
@@ -472,33 +452,11 @@ function UnidadeLinhaParceiro({
   );
 }
 
-function BarraSegmentada({
-  vencido,
-  aVencer,
-  max,
-  className,
-}: {
-  vencido: number;
-  aVencer: number;
-  max: number;
-  className?: string;
-}) {
-  return (
-    <div className={cn("flex h-3 flex-1 overflow-hidden rounded-full bg-muted", className)}>
-      {vencido > 0 ? (
-        <div
-          className="h-full bg-destructive/75 transition-[width] duration-300"
-          style={{ width: `${Math.max((vencido / max) * 100, 2)}%` }}
-        />
-      ) : null}
-      {aVencer > 0 ? (
-        <div
-          className="h-full bg-warning/75 transition-[width] duration-300"
-          style={{ width: `${Math.max((aVencer / max) * 100, 2)}%` }}
-        />
-      ) : null}
-    </div>
-  );
+// Status de um lote/contratante pendente: "Vencido" se há parcela vencida, senão "A Vencer".
+// Substitui a antiga barra segmentada — reaproveita os rótulos/cores do BadgeStatus.
+function StatusLote({ vencido, aVencer: _aVencer }: { vencido: number; aVencer: number }) {
+  const status: StatusKey = vencido > 0 ? "atrasado" : "a_pagar";
+  return <BadgeStatus status={status} />;
 }
 
 const colsSolicUnidade: Coluna<Solicitacao>[] = [

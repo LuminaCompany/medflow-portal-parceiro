@@ -71,5 +71,5 @@ def test_reentrada_self_healing():
 
     corrigida = [_parsed("99", "Dr. Bruno", BESA, linha=3)]
     validas2, pend2 = particiona(corrigida, CADASTRO, HOJE)
-    assert {s.codigo for s in validas2} == {"BES-99"}  # prefixo da contratante (BESA → BES)
+    assert {s.codigo for s in validas2} == {"BESA-99"}  # prefixo da contratante (BESA → BESA)
     assert len(pend2) == 0

@@ -11,8 +11,8 @@ from dataclasses import dataclass, field
 from datetime import date, datetime
 from decimal import Decimal, InvalidOperation
 
-# Prefixo do código exibido = 3 primeiras letras da contratante (data-model §1, CONTEXT.md).
-TAMANHO_SIGLA = 3
+# Prefixo do código exibido = 4 primeiras letras da contratante (data-model §1, CONTEXT.md).
+TAMANHO_SIGLA = 4
 SIGLA_SEM_CONTRATANTE = "???"
 
 # Índices de coluna na aba "Dados Tratados" (data-model §1). Mapear por posição é o contrato.
@@ -281,7 +281,7 @@ def normalize_nome(nome: str) -> str:
 
 
 def _sigla_contratante(contratante: str | None) -> str:
-    """3 primeiras letras [A-Z] da contratante, sem acento, MAIÚSCULAS (CONTEXT.md).
+    """4 primeiras letras [A-Z] da contratante, sem acento, MAIÚSCULAS (CONTEXT.md).
 
     Ignora espaços, dígitos e pontuação. Sem contratante resolvida → placeholder `???`.
     """
@@ -293,7 +293,7 @@ def _sigla_contratante(contratante: str | None) -> str:
 
 
 def formatar_codigo(contratante: str | None, numero: str | None) -> str | None:
-    """Código exibido `AAA-N` (ex.: `BES-1102`). None se não há número (data-model §1)."""
+    """Código exibido `AAAA-N` (ex.: `BESA-1102`). None se não há número (data-model §1)."""
     if numero is None or str(numero).strip() == "":
         return None
     return f"{_sigla_contratante(contratante)}-{str(numero).strip()}"

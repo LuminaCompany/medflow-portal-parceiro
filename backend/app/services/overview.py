@@ -77,12 +77,18 @@ def overview(
     # Ticket Médio (RF-019b): Originação Total ÷ médicos distintos = média dos totais por médico.
     ticket_medio = valor_total / len(medicos) if medicos else Decimal("0")
 
-    # Série mensal dentro do recorte (RF-020).
+    # Série mensal dentro do recorte (RF-020): originação e rebate (Σ cashback) por mês.
     por_mes: dict[str, Decimal] = defaultdict(lambda: Decimal("0"))
+    por_mes_rebate: dict[str, Decimal] = defaultdict(lambda: Decimal("0"))
     for s in no_recorte:
         ano_s, mes_s = _ano_mes(s)
-        por_mes[f"{ano_s:04d}-{mes_s:02d}"] += s.valor
-    serie = [{"mes": m, "valor": money_str(v)} for m, v in sorted(por_mes.items())]
+        chave = f"{ano_s:04d}-{mes_s:02d}"
+        por_mes[chave] += s.valor
+        por_mes_rebate[chave] += s.cashback
+    serie = [
+        {"mes": m, "valor": money_str(v), "rebate": money_str(por_mes_rebate[m])}
+        for m, v in sorted(por_mes.items())
+    ]
 
     return {
         "cards": {

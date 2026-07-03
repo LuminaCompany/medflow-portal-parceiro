@@ -19,6 +19,7 @@ import { ErroCarregamento } from "@/components/portal/ErroCarregamento";
 import { SeletorTempoOverview } from "@/components/portal/SeletorTempoOverview";
 import { INTERVALO_VAZIO, type Intervalo } from "@/components/ui/date-range-picker";
 import { GraficoMensal } from "@/components/GraficoMensal";
+import { GraficoRebate } from "@/components/GraficoRebate";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Empty, EmptyDescription, EmptyHeader, EmptyMedia, EmptyTitle } from "@/components/ui/empty";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -95,6 +96,7 @@ function DashboardView() {
 
       {/* Recorte temporal (RF-019): ano inteiro vs. por mês */}
       <SeletorTempoOverview
+        papel={papel}
         ano={ano}
         anosDisponiveis={data?.anos_disponiveis ?? []}
         porMes={porMes}
@@ -153,6 +155,31 @@ function DashboardView() {
               tone="brand"
             />
           </div>
+
+          {/* Rebate mensal (verde) — acima da originação */}
+          <Card className="p-5">
+            <CardHeader className="px-0">
+              <CardTitle className="font-display text-lg font-bold">Rebate Mensal</CardTitle>
+              <CardDescription>Soma do rebate por mês.</CardDescription>
+            </CardHeader>
+            <CardContent className="px-0">
+              {data.serie_mensal.length > 0 ? (
+                <GraficoRebate serie={data.serie_mensal} />
+              ) : (
+                <Empty className="h-[300px]">
+                  <EmptyHeader>
+                    <EmptyMedia variant="icon">
+                      <Gift />
+                    </EmptyMedia>
+                    <EmptyTitle>Sem histórico ainda</EmptyTitle>
+                    <EmptyDescription>
+                      Quando houver rebate, a evolução mensal aparece aqui.
+                    </EmptyDescription>
+                  </EmptyHeader>
+                </Empty>
+              )}
+            </CardContent>
+          </Card>
 
           {/* Gráfico + ticket médio */}
           <div className="grid gap-4 lg:grid-cols-3">

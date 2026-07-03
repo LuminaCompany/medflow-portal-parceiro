@@ -30,6 +30,7 @@ const MESES = [
 const TODOS_OS_MESES = Array.from({ length: 12 }, (_, i) => i + 1);
 
 interface Props {
+  papel: "parceiro" | "gestor"; // período de originação só para gestor (parceiro não vê)
   ano: number;
   anosDisponiveis: number[];
   porMes: boolean;
@@ -42,6 +43,7 @@ interface Props {
 }
 
 export function SeletorTempoOverview({
+  papel,
   ano,
   anosDisponiveis,
   porMes,
@@ -54,7 +56,9 @@ export function SeletorTempoOverview({
 }: Props) {
   const anos = anosDisponiveis.length > 0 ? anosDisponiveis : [ano];
   const todosSelecionados = meses.length === 12;
-  const periodoAtivo = intervalo.de !== ""; // período substitui o recorte ano/meses
+  // Período de originação só existe para o gestor; parceiro nunca ativa (RF: retirar do parceiro).
+  const mostraPeriodo = papel === "gestor";
+  const periodoAtivo = mostraPeriodo && intervalo.de !== ""; // período substitui o recorte ano/meses
 
   function alternaMes(m: number) {
     onMeses(meses.includes(m) ? meses.filter((x) => x !== m) : [...meses, m].sort((a, b) => a - b));
@@ -96,29 +100,32 @@ export function SeletorTempoOverview({
           </Field>
         </div>
 
-        {/* Período de originação (calendário de 2 meses, com confirmação). Substitui ano/meses. */}
-        <div className="flex items-center gap-1">
-          <DateRangePicker
-            value={intervalo}
-            onChange={onIntervalo}
-            numberOfMonths={2}
-            placeholder="Período de originação"
-            className="h-9 min-w-[210px]"
-            aria-label="Filtrar por período de originação"
-          />
-          {periodoAtivo ? (
-            <Button
-              type="button"
-              size="icon"
-              variant="ghost"
-              className="size-9 shrink-0 text-muted-foreground"
-              aria-label="Limpar período"
-              onClick={() => onIntervalo(INTERVALO_VAZIO)}
-            >
-              <X className="size-4" />
-            </Button>
-          ) : null}
-        </div>
+        {/* Período de originação (calendário de 2 meses, com confirmação). Substitui ano/meses.
+            Só para o gestor — retirado da visão do parceiro. */}
+        {mostraPeriodo ? (
+          <div className="flex items-center gap-1">
+            <DateRangePicker
+              value={intervalo}
+              onChange={onIntervalo}
+              numberOfMonths={2}
+              placeholder="Período de originação"
+              className="h-9 min-w-[210px]"
+              aria-label="Filtrar por período de originação"
+            />
+            {periodoAtivo ? (
+              <Button
+                type="button"
+                size="icon"
+                variant="ghost"
+                className="size-9 shrink-0 text-muted-foreground"
+                aria-label="Limpar período"
+                onClick={() => onIntervalo(INTERVALO_VAZIO)}
+              >
+                <X className="size-4" />
+              </Button>
+            ) : null}
+          </div>
+        ) : null}
 
         {porMes && !periodoAtivo ? (
           <button

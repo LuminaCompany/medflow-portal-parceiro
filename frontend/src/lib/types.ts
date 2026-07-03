@@ -135,7 +135,7 @@ export interface Overview {
     pagas: number;
     medicos_impactados: number;
   };
-  serie_mensal: { mes: string; valor: string }[];
+  serie_mensal: { mes: string; valor: string; rebate: string }[];
   ano: number;
   anos_disponiveis: number[];
 }

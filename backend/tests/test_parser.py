@@ -14,20 +14,20 @@ from app.sheets.parser import (
 
 
 def test_formatar_codigo_prefixo_contratante():
-    assert formatar_codigo("Besa", "1102") == "BES-1102"
-    assert formatar_codigo("BESA Medical Group", "99") == "BES-99"
+    assert formatar_codigo("Besa", "1102") == "BESA-1102"
+    assert formatar_codigo("BESA Medical Group", "99") == "BESA-99"
 
 
 def test_formatar_codigo_sem_acento_e_ignora_espacos():
-    assert formatar_codigo("São Lucas", "7") == "SAO-7"
-    assert formatar_codigo("A.H. Gestão", "5") == "AHG-5"
+    assert formatar_codigo("São Lucas", "7") == "SAOL-7"
+    assert formatar_codigo("A.H. Gestão", "5") == "AHGE-5"
 
 
 def test_formatar_codigo_bordas():
     assert formatar_codigo(None, "10") == "???-10"  # sem contratante
     assert formatar_codigo("Besa", None) is None  # sem número
     assert formatar_codigo("Besa", "  ") is None
-    assert formatar_codigo("AB", "3") == "AB-3"  # menos de 3 letras
+    assert formatar_codigo("AB", "3") == "AB-3"  # menos de 4 letras
 
 
 def test_money_us_format():
