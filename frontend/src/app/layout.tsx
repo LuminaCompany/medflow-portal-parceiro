@@ -17,6 +17,7 @@ const montserrat = Montserrat({
 export const metadata: Metadata = {
   title: "MedFlow — Portal do Parceiro",
   description: "Transparência de antecipação de recebíveis médicos.",
+  icons: { icon: "/fav.icon.png" },
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
