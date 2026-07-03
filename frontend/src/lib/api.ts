@@ -33,6 +33,28 @@ export async function apiGet<T>(path: string): Promise<T> {
   return handle<T>(res);
 }
 
+/** GET que baixa um arquivo binário (ex.: XLSX). Anexa o JWT como as demais chamadas. */
+export async function apiGetBlob(path: string): Promise<Blob> {
+  const res = await fetch(`${API_BASE}${path}`, {
+    headers: { ...(await authHeader()) },
+    cache: "no-store",
+  });
+  if (!res.ok) {
+    // Corpo de erro é JSON estruturado mesmo quando o sucesso seria binário.
+    let code = "error";
+    let message = mensagemPadrao(res.status);
+    try {
+      const data = JSON.parse(await res.text()) as { error?: { code?: string; message?: string } };
+      if (data.error?.code) code = data.error.code;
+      if (data.error?.message) message = data.error.message;
+    } catch {
+      /* mantém a mensagem padrão */
+    }
+    throw new ApiError(code, message, res.status);
+  }
+  return res.blob();
+}
+
 export async function apiSend<T>(
   method: "POST" | "PUT" | "DELETE",
   path: string,

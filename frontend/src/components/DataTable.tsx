@@ -9,7 +9,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Empty, EmptyDescription, EmptyHeader, EmptyMedia, EmptyTitle } from "@/components/ui/empty";
-import { Inbox } from "lucide-react";
+import { ChevronDown, ChevronUp, Inbox } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 export interface Coluna<T> {
@@ -19,6 +19,15 @@ export interface Coluna<T> {
   align?: "right" | "center";
   headClassName?: string;
   cellClassName?: string;
+  /** Coluna clicável para ordenar. A chave enviada ao backend é `sortKey ?? id`. */
+  sortable?: boolean;
+  sortKey?: string;
+}
+
+export type Dir = "asc" | "desc";
+export interface OrdemTabela {
+  col: string; // sortKey da coluna ativa
+  dir: Dir;
 }
 
 interface GrupoMeta {
@@ -66,6 +75,8 @@ export function DataTable<T>({
   groupBy,
   getKey,
   vazio,
+  ordem,
+  onOrdenar,
 }: {
   colunas: Coluna<T>[];
   itens: T[];
@@ -74,6 +85,10 @@ export function DataTable<T>({
   groupBy?: (item: T) => string | null | undefined;
   getKey?: (item: T, index: number) => string | number;
   vazio?: { titulo: string; descricao?: string };
+  /** Ordenação ativa (coluna + direção). Só afeta as colunas com `sortable`. */
+  ordem?: OrdemTabela;
+  /** Clique num cabeçalho ordenável — recebe a `sortKey` da coluna. */
+  onOrdenar?: (col: string) => void;
 }) {
   if (itens.length === 0) {
     return (
@@ -100,18 +115,46 @@ export function DataTable<T>({
       <Table>
         <TableHeader>
           <TableRow className="border-border/70 bg-muted/40 hover:bg-muted/40">
-            {colunas.map((c) => (
-              <TableHead
-                key={c.id}
-                className={cn(
-                  "h-11 px-4 text-[11px] font-semibold tracking-wider text-muted-foreground uppercase",
-                  alignClass(c.align),
-                  c.headClassName,
-                )}
-              >
-                {c.header}
-              </TableHead>
-            ))}
+            {colunas.map((c) => {
+              const chave = c.sortKey ?? c.id;
+              const ativo = c.sortable && ordem?.col === chave;
+              return (
+                <TableHead
+                  key={c.id}
+                  aria-sort={
+                    ativo ? (ordem?.dir === "asc" ? "ascending" : "descending") : undefined
+                  }
+                  className={cn(
+                    "h-11 px-4 text-[11px] font-semibold tracking-wider text-muted-foreground uppercase",
+                    alignClass(c.align),
+                    c.headClassName,
+                  )}
+                >
+                  {c.sortable && onOrdenar ? (
+                    <button
+                      type="button"
+                      onClick={() => onOrdenar(chave)}
+                      className={cn(
+                        "inline-flex items-center gap-1 uppercase transition-colors hover:text-foreground",
+                        c.align === "right" && "flex-row-reverse",
+                        ativo && "text-foreground",
+                      )}
+                    >
+                      {c.header}
+                      {ativo ? (
+                        ordem?.dir === "asc" ? (
+                          <ChevronUp className="size-3.5" />
+                        ) : (
+                          <ChevronDown className="size-3.5" />
+                        )
+                      ) : null}
+                    </button>
+                  ) : (
+                    c.header
+                  )}
+                </TableHead>
+              );
+            })}
           </TableRow>
         </TableHeader>
         <TableBody>

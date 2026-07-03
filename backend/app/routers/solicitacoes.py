@@ -4,8 +4,11 @@
 (detalhe + médico). Tudo escopado por Contratante no serviço (R-001).
 """
 
+from datetime import date
+
 from fastapi import APIRouter, HTTPException, Query, Request
 from fastapi import status as http_status
+from fastapi.responses import Response
 
 from app.auth.deps import CurrentUser
 from app.auth.supabase import get_supabase_auth
@@ -16,10 +19,15 @@ from app.services.cores import cor_para
 from app.services.dataset import get_dataset_service
 from app.services.partners import PartnersService
 from app.services.solicitacoes import (
+    DIR_PADRAO,
     LIMIT_PADRAO,
+    SORT_PADRAO,
     detalhe_solicitacao,
+    exporta_solicitacoes_xlsx,
     listar_solicitacoes,
 )
+
+_XLSX_MEDIA = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
 
 router = APIRouter(prefix="/api", tags=["solicitacoes"])
 
@@ -35,6 +43,8 @@ def get_solicitacoes(
     limit: int = Query(LIMIT_PADRAO, ge=1, le=200),
     offset: int = Query(0, ge=0),
     q: str | None = None,
+    sort: str = SORT_PADRAO,
+    dir: str = DIR_PADRAO,
 ) -> dict:
     # Demais query params (status, unidade, valor, …) viram filtros dinâmicos via engine.
     filtros = parse_filtros(request.query_params, ABA_SOLICITACOES, papel_de(user))
@@ -46,6 +56,33 @@ def get_solicitacoes(
         filtros=filtros,
         limit=limit,
         offset=offset,
+        sort=sort,
+        direcao=dir,
+    )
+
+
+@router.get("/solicitacoes/export")
+def export_solicitacoes(
+    request: Request,
+    user: CurrentUser,
+    q: str | None = None,
+    cols: str | None = None,
+    sort: str = SORT_PADRAO,
+    dir: str = DIR_PADRAO,
+) -> Response:
+    """Exporta as solicitações escopadas/filtradas em XLSX. Escopo R-001 no serviço — o
+    arquivo nunca carrega dado de outra Contratante. `cols` = ids separados por vírgula."""
+    filtros = parse_filtros(request.query_params, ABA_SOLICITACOES, papel_de(user))
+    colunas = [c.strip() for c in cols.split(",") if c.strip()] if cols else None
+    dataset = get_dataset_service().get()
+    conteudo = exporta_solicitacoes_xlsx(
+        dataset, user, q=q, filtros=filtros, colunas=colunas, sort=sort, direcao=dir
+    )
+    nome = f"solicitacoes_{date.today().isoformat()}.xlsx"
+    return Response(
+        content=conteudo,
+        media_type=_XLSX_MEDIA,
+        headers={"Content-Disposition": f'attachment; filename="{nome}"'},
     )
 
 

@@ -4,9 +4,10 @@ import { Suspense, useCallback, useEffect, useMemo, useState } from "react";
 import { Search, SlidersHorizontal } from "lucide-react";
 
 import { BarraFiltros } from "@/components/filtros/BarraFiltros";
-import { DataTable } from "@/components/DataTable";
+import { DataTable, type OrdemTabela } from "@/components/DataTable";
 import { DetalheSolicitacao } from "@/components/DetalheSolicitacao";
 import { ErroCarregamento } from "@/components/portal/ErroCarregamento";
+import { ExportarSolicitacoes } from "@/components/portal/ExportarSolicitacoes";
 import { colunasSolicitacao } from "@/components/colunasSolicitacao";
 import { Button } from "@/components/ui/button";
 import {
@@ -42,6 +43,10 @@ function SolicitacoesView() {
   const qBusca = useDebounce(q.trim());
   const { queryString } = useFiltros("solicitacoes");
   const [parceiros, setParceiros] = useState<ParceiroBotao[]>([]);
+
+  // Ordenação da tabela (feature 008). Padrão: data do pedido, mais recente primeiro. O 1º
+  // clique numa coluna ordena decrescente (seta ↓); clicar de novo alterna p/ crescente (↑).
+  const [ordem, setOrdem] = useState<OrdemTabela>({ col: "data_pedido", dir: "desc" });
 
   const [itens, setItens] = useState<Solicitacao[]>([]);
   const [total, setTotal] = useState(0);
@@ -79,6 +84,8 @@ function SolicitacoesView() {
       const params = new URLSearchParams(queryString); // status/unidade/valor/… (chips)
       params.set("limit", String(PAGINA));
       params.set("offset", String(novoOffset));
+      params.set("sort", ordem.col);
+      params.set("dir", ordem.dir);
       if (qBusca) params.set("q", qBusca);
       try {
         const data = await apiGet<Paginada<Solicitacao>>(`/api/solicitacoes?${params}`);
@@ -93,12 +100,19 @@ function SolicitacoesView() {
         setCarregando(false);
       }
     },
-    [qBusca, queryString],
+    [qBusca, queryString, ordem],
   );
 
   useEffect(() => {
     buscar(0, false);
   }, [buscar]);
+
+  // Clique no cabeçalho: mesma coluna → alterna direção; nova coluna → começa decrescente.
+  function ordenarPor(col: string) {
+    setOrdem((prev) =>
+      prev.col === col ? { col, dir: prev.dir === "desc" ? "asc" : "desc" } : { col, dir: "desc" },
+    );
+  }
 
   async function abrirDetalhe(s: Solicitacao) {
     setSheetAberto(true);
@@ -148,7 +162,8 @@ function SolicitacoesView() {
           </div>
         </BarraFiltros>
 
-        <div className="flex justify-end">
+        <div className="flex justify-end gap-2">
+          <ExportarSolicitacoes papel={papel} gestor={gestor} />
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Button variant="outline" size="sm" className="h-8">
@@ -187,10 +202,15 @@ function SolicitacoesView() {
           itens={itens}
           onRowClick={abrirDetalhe}
           getKey={(s) => s.codigo}
-          groupBy={(s) =>
-            // Linhas do mesmo médico ficam contíguas (backend ordena). Inclui o contratante
-            // p/ o gestor não fundir homônimos de parceiros diferentes na visão consolidada.
-            s.medico_grupo_id ? `${s.medico_grupo_id}|${s.contratante ?? ""}` : null
+          ordem={ordem}
+          onOrdenar={ordenarPor}
+          groupBy={
+            // O agrupamento visual por médico só faz sentido na ordem por médico (coluna
+            // Cliente) — aí as linhas do mesmo médico ficam contíguas. Nas demais ordens, não
+            // agrupa. Inclui o contratante p/ o gestor não fundir homônimos de parceiros.
+            ordem.col === "cliente"
+              ? (s) => (s.medico_grupo_id ? `${s.medico_grupo_id}|${s.contratante ?? ""}` : null)
+              : undefined
           }
           rowAccent={
             gestor ? (s) => coresParceiro.get(s.contratante ?? "") ?? s.cor_parceiro : undefined

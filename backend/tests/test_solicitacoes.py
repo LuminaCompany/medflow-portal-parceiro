@@ -7,7 +7,11 @@ from app.domain.filtros.engine import parse as parse_filtros
 from app.domain.filtros.registry import ABA_SOLICITACOES
 from app.domain.models import AppUser, Solicitacao
 from app.services.dataset import Dataset
-from app.services.solicitacoes import detalhe_solicitacao, listar_solicitacoes
+from app.services.solicitacoes import (
+    detalhe_solicitacao,
+    exporta_solicitacoes_xlsx,
+    listar_solicitacoes,
+)
 from app.sheets.parser import normalize_nome
 
 BESA = "BESA Medical Group"
@@ -65,13 +69,49 @@ def test_filtro_status():
 
 
 def test_paginacao_nao_corta_grupo_de_medico():
-    """RF-009: limit=1 mas Dr. Ana tem 2 linhas → página estende até fechar o grupo."""
-    out = listar_solicitacoes(_dataset(VALIDAS), _user("parceiro", BESA), limit=1, offset=0)
+    """RF-009: na ordem por médico (sort=cliente), limit=1 mas Dr. Ana tem 2 linhas → a
+    página estende até fechar o grupo. Feature 008: o agrupamento só vale nessa ordem."""
+    out = listar_solicitacoes(
+        _dataset(VALIDAS), _user("parceiro", BESA), limit=1, offset=0, sort="cliente", direcao="asc"
+    )
     grupos = {i["medico_grupo_id"] for i in out["items"]}
     # As 2 linhas da Dr. Ana saem juntas (>1 item), nenhum grupo partido.
     ana = [i for i in out["items"] if i["medico_grupo_id"] == normalize_nome("Dr. Ana")]
     assert len(ana) == 2
     assert len(grupos) == 1
+
+
+def test_ordem_padrao_por_data_pedido_desc():
+    """Feature 008: sem sort explícito, ordena por data do pedido, mais recente primeiro."""
+    validas = [
+        _sol(BESA, "a", "Dr. X", valor="10"),
+        _sol(BESA, "b", "Dr. Y", valor="20"),
+    ]
+    validas[0].data_pedido = date(2026, 1, 10)
+    validas[1].data_pedido = date(2026, 3, 20)
+    out = listar_solicitacoes(_dataset(validas), _user("parceiro", BESA))
+    assert [i["codigo"] for i in out["items"]] == ["b", "a"]  # mais recente primeiro
+
+
+def test_ordem_por_coluna_asc_e_desc():
+    """Clique na coluna ordena por ela; a seta troca asc/desc (feature 008)."""
+    validas = [
+        _sol(BESA, "1", "Dr. X", valor="300"),
+        _sol(BESA, "2", "Dr. Y", valor="100"),
+        _sol(BESA, "3", "Dr. Z", valor="200"),
+    ]
+    asc = listar_solicitacoes(_dataset(validas), _user("parceiro", BESA), sort="valor", direcao="asc")
+    assert [i["codigo"] for i in asc["items"]] == ["2", "3", "1"]
+    desc = listar_solicitacoes(_dataset(validas), _user("parceiro", BESA), sort="valor", direcao="desc")
+    assert [i["codigo"] for i in desc["items"]] == ["1", "3", "2"]
+
+
+def test_sort_invalido_cai_no_padrao():
+    """Coluna/direção desconhecida não derruba a listagem — cai no padrão."""
+    out = listar_solicitacoes(
+        _dataset(VALIDAS), _user("parceiro", BESA), sort="inexistente", direcao="xyz"
+    )
+    assert out["total"] == 3  # ainda responde, escopo mantido
 
 
 def test_detalhe_escopado_nao_vaza_medico_de_outro_parceiro():
@@ -172,3 +212,40 @@ def test_parceiro_nao_amplia_escopo_via_contratante():
     out = listar_solicitacoes(_dataset(VALIDAS), _user("parceiro", BESA), filtros=filtros)
     assert "9" not in {i["codigo"] for i in out["items"]}
     assert out["total"] == 3
+
+
+# --- Exportação XLSX (feature 008) -------------------------------------------------------
+
+def _exporta(user, validas=None, **kw):
+    from io import BytesIO
+
+    from openpyxl import load_workbook
+
+    conteudo = exporta_solicitacoes_xlsx(_dataset(validas or VALIDAS), user, **kw)
+    return load_workbook(BytesIO(conteudo)).active
+
+
+def test_export_escopado_nao_vaza_outro_parceiro():
+    ws = _exporta(_user("parceiro", BESA))
+    valores = {str(c.value) for row in ws.iter_rows() for c in row if c.value is not None}
+    assert "Dr. Ana" in valores
+    assert "Dr. Carlos" not in valores  # médico do AH, fora do escopo
+
+
+def test_export_respeita_filtro():
+    filtros = parse_filtros({"status": "atrasado"}, ABA_SOLICITACOES, "parceiro")
+    ws = _exporta(_user("parceiro", BESA), filtros=filtros)
+    # Cabeçalho + só a linha atrasada ("1" = Dr. Ana atrasada).
+    assert ws.max_row == 2
+
+
+def test_export_coluna_parceiro_so_para_gestor():
+    cols = ["codigo", "contratante"]
+    # Parceiro não recebe a coluna "Parceiro" mesmo pedindo-a; gestor recebe.
+    assert "Parceiro" not in {c.value for c in _exporta(_user("parceiro", BESA), colunas=cols)[1]}
+    assert "Parceiro" in {c.value for c in _exporta(_user("gestor", None), colunas=cols)[1]}
+
+
+def test_export_selecao_de_colunas():
+    ws = _exporta(_user("parceiro", BESA), colunas=["codigo", "valor"])
+    assert [c.value for c in ws[1]] == ["Código", "Originação"]

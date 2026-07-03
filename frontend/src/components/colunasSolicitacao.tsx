@@ -27,17 +27,25 @@ export function colunasSolicitacao(gestor = false): ColunaSolic[] {
       label: "Código",
       header: "Código",
       essential: true,
+      sortable: true,
       cell: (s) => <CodigoChip codigo={s.codigo} />,
     },
-    { id: "cliente", label: "Cliente", header: "Cliente", essential: true, cell: (s) => (
+    { id: "cliente", label: "Cliente", header: "Cliente", essential: true, sortable: true, cell: (s) => (
       <span className="font-medium">{s.cliente}</span>
     ) },
-    { id: "data_pedido", label: "Pedido", header: "Pedido", cell: (s) => formatData(s.data_pedido) },
+    {
+      id: "data_pedido",
+      label: "Pedido",
+      header: "Pedido",
+      sortable: true,
+      cell: (s) => formatData(s.data_pedido),
+    },
     {
       id: "valor",
       label: "Originação",
       header: "Originação",
       align: "right",
+      sortable: true,
       cell: (s) => <span className="font-semibold">{formatMoeda(s.valor)}</span>,
     },
     {
@@ -45,6 +53,7 @@ export function colunasSolicitacao(gestor = false): ColunaSolic[] {
       label: "Quitação",
       header: "Quitação",
       align: "right",
+      sortable: true,
       cell: (s) => formatData(s.data_vencimento),
     },
     {
@@ -52,6 +61,7 @@ export function colunasSolicitacao(gestor = false): ColunaSolic[] {
       label: "Status",
       header: "Status",
       essential: true,
+      sortable: true,
       cell: (s) => <BadgeStatus status={s.status} />,
     },
     // --- Extras (modelo completo, ocultas por padrão) ---
@@ -61,6 +71,7 @@ export function colunasSolicitacao(gestor = false): ColunaSolic[] {
       header: "Recebido",
       align: "right",
       defaultHidden: true,
+      sortable: true,
       cell: (s) => formatMoeda(s.recebido_cliente),
     },
     {
@@ -69,6 +80,7 @@ export function colunasSolicitacao(gestor = false): ColunaSolic[] {
       header: "IOF",
       align: "right",
       defaultHidden: true,
+      sortable: true,
       cell: (s) => formatMoeda(s.iof),
     },
     {
@@ -77,6 +89,7 @@ export function colunasSolicitacao(gestor = false): ColunaSolic[] {
       header: "Taxa/mês",
       align: "right",
       defaultHidden: true,
+      sortable: true,
       cell: (s) => formatPercent(s.taxa_juros_mes),
     },
     {
@@ -85,6 +98,7 @@ export function colunasSolicitacao(gestor = false): ColunaSolic[] {
       header: "Prazo",
       align: "right",
       defaultHidden: true,
+      sortable: true,
       cell: (s) => (s.prazo_dias != null ? `${s.prazo_dias}d` : "—"),
     },
     {
@@ -92,6 +106,7 @@ export function colunasSolicitacao(gestor = false): ColunaSolic[] {
       label: "Unidade referência",
       header: "Unidade",
       defaultHidden: true,
+      sortable: true,
       cell: (s) => s.unidade ?? "—",
     },
     {
@@ -100,6 +115,7 @@ export function colunasSolicitacao(gestor = false): ColunaSolic[] {
       header: "Rebate",
       align: "right",
       defaultHidden: true,
+      sortable: true,
       cell: (s) => formatMoeda(s.cashback),
     },
   ];
@@ -109,6 +125,7 @@ export function colunasSolicitacao(gestor = false): ColunaSolic[] {
       id: "contratante",
       label: "Parceiro",
       header: "Parceiro",
+      sortable: true,
       cell: (s) => s.contratante ?? "—",
     });
   }

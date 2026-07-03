@@ -6,6 +6,7 @@ email-validator==2.2.0
 google-api-python-client==2.154.0
 google-auth==2.36.0
 supabase==2.10.0
+openpyxl==3.1.5  # exportação XLSX da aba Solicitações (feature 008)
 PyJWT==2.10.1
 python-dateutil==2.9.0.post0
 tzdata==2024.2  # base de fusos p/ zoneinfo (necessária no Windows dev; América/Sao_Paulo)

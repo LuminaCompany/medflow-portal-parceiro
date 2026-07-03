@@ -5,7 +5,13 @@ Busca/filtra/pagina/agrupa sobre o dataset VÁLIDO escopado (R-001). Agrupamento
 (RF-009) — a página efetiva pode trazer >20 itens.
 """
 
+from collections.abc import Callable
 from decimal import Decimal
+from io import BytesIO
+
+from openpyxl import Workbook
+from openpyxl.styles import Font
+from openpyxl.utils import get_column_letter
 
 from app.domain.filtros.engine import FiltroAplicado
 from app.domain.filtros.engine import aplica as aplica_filtros
@@ -18,6 +24,30 @@ from app.services.serialize import money_str, serializa_medico, serializa_solici
 
 LIMIT_PADRAO = 20
 
+# Ordenação: coluna + direção. Padrão = data do pedido, mais recente primeiro (feature 008;
+# antes a ordem era sempre por médico). O agrupamento visual por médico (RF-009) só vale
+# quando a ordem é pela coluna "cliente" — aí as linhas do mesmo médico ficam contíguas.
+SORT_PADRAO = "data_pedido"
+DIR_PADRAO = "desc"
+
+# Chave de ordenação por coluna. `None` vira um piso do mesmo tipo p/ não misturar tipos no
+# sort. "cliente" ordena por (nome, grupo do médico, código) — mantém o médico contíguo.
+_SORT_GETTERS: dict[str, Callable[[Solicitacao], object]] = {
+    "codigo": lambda s: s.codigo,
+    "cliente": lambda s: ((s.cliente or "").lower(), s.medico_grupo_id or "", s.codigo),
+    "data_pedido": lambda s: s.data_pedido,
+    "valor": lambda s: s.valor,
+    "data_vencimento": lambda s: s.data_vencimento,
+    "status": lambda s: s.status,
+    "recebido_cliente": lambda s: s.recebido_cliente or Decimal(0),
+    "iof": lambda s: s.iof or Decimal(0),
+    "taxa_juros_mes": lambda s: s.taxa_juros_mes or Decimal(0),
+    "prazo_dias": lambda s: s.prazo_dias if s.prazo_dias is not None else -1,
+    "unidade": lambda s: (s.unidade or "").lower(),
+    "cashback": lambda s: s.cashback,
+    "contratante": lambda s: (s.contratante or "").lower(),
+}
+
 
 def _aplica_escopo_e_filtros(
     dataset: Dataset,
@@ -25,7 +55,7 @@ def _aplica_escopo_e_filtros(
     q: str | None,
     filtros: list[FiltroAplicado] | None,
 ) -> list[Solicitacao]:
-    """Escopo R-001 (sempre 1º) + filtros dinâmicos + busca. Ordena por médico (grupos juntos)."""
+    """Escopo R-001 (sempre 1º) + filtros dinâmicos + busca. Não ordena (ver `_ordena`)."""
     # Escopo primeiro e separado: o filtro de UI nunca amplia o escopo do parceiro.
     itens = filtra_por_escopo(dataset.validas, user)
     itens = aplica_filtros(itens, filtros or [])
@@ -33,9 +63,15 @@ def _aplica_escopo_e_filtros(
     if q:
         termo = q.strip().lower()
         itens = [s for s in itens if _casa_busca(s, termo)]
+    return itens
 
-    # Agrupa por médico: ordenar por grupo deixa as linhas do mesmo médico contíguas.
-    return sorted(itens, key=lambda s: (s.medico_grupo_id or "", s.codigo))
+
+def _ordena(itens: list[Solicitacao], sort: str, direcao: str) -> list[Solicitacao]:
+    """Ordena pela coluna `sort` (asc/desc). Coluna/direção inválida cai no padrão."""
+    getter = _SORT_GETTERS.get(sort, _SORT_GETTERS[SORT_PADRAO])
+    reverso = (direcao if direcao in ("asc", "desc") else DIR_PADRAO) == "desc"
+    # `codigo` como desempate estável e determinístico entre linhas de igual valor.
+    return sorted(itens, key=lambda s: (getter(s), s.codigo), reverse=reverso)
 
 
 def _casa_busca(s: Solicitacao, termo: str) -> bool:
@@ -76,16 +112,110 @@ def listar_solicitacoes(
     filtros: list[FiltroAplicado] | None = None,
     limit: int = LIMIT_PADRAO,
     offset: int = 0,
+    sort: str = SORT_PADRAO,
+    direcao: str = DIR_PADRAO,
 ) -> dict:
-    """Lista paginada/filtrável (escopada). Resposta: items, total, has_more."""
+    """Lista paginada/filtrável/ordenável (escopada). Resposta: items, total, has_more."""
     filtradas = _aplica_escopo_e_filtros(dataset, user, q, filtros)
+    ordenadas = _ordena(filtradas, sort, direcao)
     gestor = is_gestor(user)
-    pagina, has_more = _pagina_sem_cortar_grupo(filtradas, offset, limit)
+    if sort == "cliente":
+        # Só na ordem por médico o agrupamento (RF-009) vale — não corta o grupo entre páginas.
+        pagina, has_more = _pagina_sem_cortar_grupo(ordenadas, offset, limit)
+    else:
+        fim = min(offset + limit, len(ordenadas))
+        pagina, has_more = ordenadas[offset:fim], fim < len(ordenadas)
     return {
         "items": [_serializa(s, gestor) for s in pagina],
         "total": len(filtradas),
         "has_more": has_more,
     }
+
+
+# --- Exportação XLSX (feature 008) -------------------------------------------------------
+# Escopada como toda leitura (R-001): passa por `_aplica_escopo_e_filtros`, então o arquivo
+# NUNCA carrega linha de outra Contratante nem fora da allowlist de Unidades. As colunas
+# gestor-only (Parceiro) só saem na visão do gestor — mesma máscara D5' da serialização JSON.
+
+# Rótulos de status EXIBIDOS na UI (a_pagar→"A Vencer", atrasado→"Vencido") — o arquivo
+# espelha o que o usuário vê (frontend/src/lib/format.ts), não a chave interna.
+_STATUS_EXIBICAO = {"pago": "Pago", "a_pagar": "A Vencer", "atrasado": "Vencido"}
+
+# Colunas do XLSX: id -> (cabeçalho, getter, tipo de célula). A ordem aqui é a ordem no arquivo.
+_EXPORT_COLS: dict[str, tuple[str, Callable[[Solicitacao], object], str]] = {
+    "codigo": ("Código", lambda s: s.codigo, "text"),
+    "cliente": ("Cliente", lambda s: s.cliente, "text"),
+    "contratante": ("Parceiro", lambda s: s.contratante, "text"),
+    "data_pedido": ("Data do pedido", lambda s: s.data_pedido, "date"),
+    "valor": ("Originação", lambda s: s.valor, "money"),
+    "data_vencimento": ("Quitação", lambda s: s.data_vencimento, "date"),
+    "status": ("Status", lambda s: _STATUS_EXIBICAO.get(s.status, s.status_label), "text"),
+    "recebido_cliente": ("Recebido cliente", lambda s: s.recebido_cliente, "money"),
+    "iof": ("IOF", lambda s: s.iof, "money"),
+    "taxa_juros_mes": ("Taxa ao mês (%)", lambda s: s.taxa_juros_mes, "percent"),
+    "prazo_dias": ("Prazo (dias)", lambda s: s.prazo_dias, "int"),
+    "unidade": ("Unidade", lambda s: s.unidade, "text"),
+    "cashback": ("Rebate", lambda s: s.cashback, "money"),
+}
+_EXPORT_GESTOR_ONLY = frozenset({"contratante"})
+_EXPORT_FMT = {"money": "#,##0.00", "date": "DD/MM/YYYY", "percent": '0.00"%"', "int": "0"}
+
+
+def _colunas_export(colunas: list[str] | None, gestor: bool) -> list[str]:
+    """Colunas a exportar, na ordem canônica. Filtra gestor-only p/ parceiro; ids inválidos
+    são ignorados. Sem escolha (ou escolha vazia após filtrar) => todas as permitidas."""
+    permitidas = [c for c in _EXPORT_COLS if gestor or c not in _EXPORT_GESTOR_ONLY]
+    if not colunas:
+        return permitidas
+    pedidas = set(colunas)
+    return [c for c in permitidas if c in pedidas] or permitidas
+
+
+def _valor_celula(v: object, tipo: str) -> object:
+    """Converte o valor de domínio p/ o que o openpyxl grava nativo (número/data/texto)."""
+    if v is None:
+        return None
+    if tipo in ("money", "percent"):
+        return float(v)  # Decimal -> float p/ o Excel tratar como número
+    return v
+
+
+def exporta_solicitacoes_xlsx(
+    dataset: Dataset,
+    user: AppUser,
+    q: str | None = None,
+    filtros: list[FiltroAplicado] | None = None,
+    colunas: list[str] | None = None,
+    sort: str = SORT_PADRAO,
+    direcao: str = DIR_PADRAO,
+) -> bytes:
+    """Gera o XLSX das solicitações escopadas/filtradas/ordenadas. Retorna os bytes do arquivo."""
+    filtradas = _aplica_escopo_e_filtros(dataset, user, q, filtros)
+    ordenadas = _ordena(filtradas, sort, direcao)
+    cols = _colunas_export(colunas, is_gestor(user))
+
+    wb = Workbook()
+    ws = wb.active
+    ws.title = "Solicitações"
+    ws.append([_EXPORT_COLS[c][0] for c in cols])
+    for cell in ws[1]:
+        cell.font = Font(bold=True)
+    for s in ordenadas:
+        ws.append([_valor_celula(_EXPORT_COLS[c][1](s), _EXPORT_COLS[c][2]) for c in cols])
+
+    # Formato numérico/data por coluna (pula o cabeçalho) + largura confortável.
+    for i, c in enumerate(cols, start=1):
+        letra = get_column_letter(i)
+        fmt = _EXPORT_FMT.get(_EXPORT_COLS[c][2])
+        if fmt:
+            for cell in ws[letra][1:]:
+                cell.number_format = fmt
+        ws.column_dimensions[letra].width = 18
+    ws.freeze_panes = "A2"  # trava o cabeçalho ao rolar
+
+    buf = BytesIO()
+    wb.save(buf)
+    return buf.getvalue()
 
 
 def _resumo_medico(itens_escopo: list[Solicitacao], grupo_id: str | None, gestor: bool) -> dict:

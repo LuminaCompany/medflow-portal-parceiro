@@ -90,3 +90,18 @@ token (`GestorUser.id`), nunca do corpo — não dá p/ trocar a senha de outro.
   `app/routers/conta.py` (`POST /api/me/trocar-senha`, 204); testes em `tests/test_conta.py`
 - Frontend: `Me.must_change_password`; `components/portal/TrocarSenhaObrigatoria.tsx`; gate em
   `app/(portal)/layout.tsx` (renderiza no lugar do portal, sem como pular)
+
+## Feature: Exportar XLSX + ordenação por coluna na aba Solicitações (008)
+Botão "Exportar" abre diálogo com **colunas** (checkboxes, todas por padrão) + **filtros próprios**
+(em branco, independentes dos chips da página — mesmo registry 002); o botão vira "Exportar tudo"
+sem filtro. Arquivo XLS via `openpyxl`, gerado **escopado no backend** (R-001) — nunca carrega
+outra Contratante; coluna "Parceiro" só sai p/ gestor. Ordenação: clique no cabeçalho ordena pela
+coluna (1º clique ↓ desc, alterna ↑ asc); **padrão data do pedido desc** (antes era por médico). O
+agrupamento visual por médico (RF-009) só aparece na ordem por Cliente. Export é endpoint novo de
+dados → entra na varredura de isolamento (`test_e2e_isolamento.py`, teste que abre o workbook).
+- Migration/dep: `openpyxl` em `backend/requirements.txt` (rodar `pip install -r`)
+- Backend: `sort`/`dir` + `exporta_solicitacoes_xlsx` em `services/solicitacoes.py`;
+  `GET /api/solicitacoes/export` + `sort`/`dir` no list em `routers/solicitacoes.py`
+- Frontend: `ordem`+`onOrdenar` em `DataTable.tsx`, `sortable` nas colunas
+  (`colunasSolicitacao.tsx`), `apiGetBlob` em `lib/api.ts`,
+  `components/portal/ExportarSolicitacoes.tsx`, wiring em `app/(portal)/solicitacoes/page.tsx`

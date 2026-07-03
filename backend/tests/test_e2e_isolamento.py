@@ -84,6 +84,36 @@ def test_forcar_parceiros_de_outro_eh_ignorado():
     assert "99" not in codigos
 
 
+def test_export_so_traz_o_proprio_parceiro():
+    # O XLSX é escopado como toda leitura: parceiro BESA só pode ver a própria linha ("1"),
+    # jamais a de AH ("99"). Verifica lendo as células do arquivo (zip binário não serve para
+    # a varredura por substring — por isso um teste dedicado que abre o workbook).
+    from io import BytesIO
+
+    from openpyxl import load_workbook
+
+    resp = client.get("/api/solicitacoes/export")
+    assert resp.status_code == 200
+    ws = load_workbook(BytesIO(resp.content)).active
+    valores = {str(c.value) for row in ws.iter_rows() for c in row if c.value is not None}
+    assert "Dr. 1" in valores  # cliente da linha do próprio parceiro
+    for marca in MARCAS_DE_AH + ("Dr. 99", "Hosp AH"):
+        assert marca not in valores, f"VAZAMENTO no export: {marca!r}"
+
+
+def test_export_ignora_contratante_de_outro_no_filtro():
+    # Forçar o contratante de AH no filtro não amplia o escopo do parceiro (escopo prevalece).
+    from io import BytesIO
+
+    from openpyxl import load_workbook
+
+    resp = client.get("/api/solicitacoes/export?contratante=A.H.%20GEST%C3%83O%20M%C3%89DICA")
+    assert resp.status_code == 200
+    ws = load_workbook(BytesIO(resp.content)).active
+    valores = {str(c.value) for row in ws.iter_rows() for c in row if c.value is not None}
+    assert "Dr. 99" not in valores
+
+
 def test_detalhe_de_outro_parceiro_404():
     resp = client.get("/api/solicitacoes/99")
     assert resp.status_code == 404
