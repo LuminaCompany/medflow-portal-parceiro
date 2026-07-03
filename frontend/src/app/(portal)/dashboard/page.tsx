@@ -156,30 +156,32 @@ function DashboardView() {
             />
           </div>
 
-          {/* Rebate mensal (verde) — acima da originação */}
-          <Card className="p-5">
-            <CardHeader className="px-0">
-              <CardTitle className="font-display text-lg font-bold">Rebate Mensal</CardTitle>
-              <CardDescription>Soma do rebate por mês.</CardDescription>
-            </CardHeader>
-            <CardContent className="px-0">
-              {data.serie_mensal.length > 0 ? (
-                <GraficoRebate serie={data.serie_mensal} />
-              ) : (
-                <Empty className="h-[300px]">
-                  <EmptyHeader>
-                    <EmptyMedia variant="icon">
-                      <Gift />
-                    </EmptyMedia>
-                    <EmptyTitle>Sem histórico ainda</EmptyTitle>
-                    <EmptyDescription>
-                      Quando houver rebate, a evolução mensal aparece aqui.
-                    </EmptyDescription>
-                  </EmptyHeader>
-                </Empty>
-              )}
-            </CardContent>
-          </Card>
+          {/* Rebate mensal (verde) — acima da originação, mesmo tamanho (col-span-2) */}
+          <div className="grid gap-4 lg:grid-cols-3">
+            <Card className="p-5 lg:col-span-2">
+              <CardHeader className="px-0">
+                <CardTitle className="font-display text-lg font-bold">Rebate Mensal</CardTitle>
+                <CardDescription>Soma do rebate por mês.</CardDescription>
+              </CardHeader>
+              <CardContent className="px-0">
+                {data.serie_mensal.length > 0 ? (
+                  <GraficoRebate serie={data.serie_mensal} />
+                ) : (
+                  <Empty className="h-[300px]">
+                    <EmptyHeader>
+                      <EmptyMedia variant="icon">
+                        <Gift />
+                      </EmptyMedia>
+                      <EmptyTitle>Sem histórico ainda</EmptyTitle>
+                      <EmptyDescription>
+                        Quando houver rebate, a evolução mensal aparece aqui.
+                      </EmptyDescription>
+                    </EmptyHeader>
+                  </Empty>
+                )}
+              </CardContent>
+            </Card>
+          </div>
 
           {/* Gráfico + ticket médio */}
           <div className="grid gap-4 lg:grid-cols-3">
