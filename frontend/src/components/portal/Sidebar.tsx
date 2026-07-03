@@ -14,6 +14,7 @@ import { ThemeToggle } from "@/components/ThemeToggle";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { APP_VERSION } from "@/lib/version";
 import { cn } from "@/lib/utils";
+import type { Role } from "@/lib/types";
 
 export interface NavItem {
   href: string;
@@ -158,6 +159,7 @@ export function Sidebar({
       <div className="relative mt-auto flex flex-col gap-2 border-t border-sidebar-border/50 p-3">
         {/* "Dar uma sugestão ou reportar um erro" — acima da linha do login */}
         <FeedbackDialog
+          role={papel as Role}
           trigger={
             collapsed ? (
               <button

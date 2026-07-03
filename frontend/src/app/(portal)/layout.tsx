@@ -148,6 +148,7 @@ export default function PortalLayout({ children }: { children: React.ReactNode }
 
               <div className="mt-2 border-t border-sidebar-border/50 pt-3">
                 <FeedbackDialog
+                  role={me.role}
                   trigger={
                     <button
                       type="button"

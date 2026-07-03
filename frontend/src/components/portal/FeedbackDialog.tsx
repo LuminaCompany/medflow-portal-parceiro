@@ -25,28 +25,29 @@ import {
 import { Textarea } from "@/components/ui/textarea";
 import { ApiError, apiSend } from "@/lib/api";
 import { cn } from "@/lib/utils";
-import type { FeedbackTipo } from "@/lib/types";
+import type { FeedbackTipo, Role } from "@/lib/types";
 
-// Abas do portal + escape "Não se encaixa". O usuário pode escolher QUALQUER aba (mesmo as que
-// não vê no seu papel) — o feedback é lido pelo gestor.
-const ABAS = [
-  "Visão Geral",
-  "Solicitações",
-  "Vencimentos",
-  "Pagamentos",
-  "Parceiros",
-  "Pendências",
-  "Feedbacks",
-  "Login / entrada",
-  "Não se encaixa em nenhuma aba",
-] as const;
+// Abas visíveis a todos os papéis.
+const ABAS_COMUNS = ["Visão Geral", "Solicitações", "Vencimentos"];
+// Abas gestor-only — o parceiro nem as vê no portal, então não aparecem na lista dele.
+const ABAS_GESTOR = ["Pagamentos", "Parceiros", "Pendências", "Feedbacks"];
+const ABAS_EXTRA = ["Login / entrada", "Não se encaixa em nenhuma aba"];
+
+/** Abas que o usuário pode apontar no feedback — só as que o seu papel realmente enxerga. */
+function abasDoPapel(role: string): string[] {
+  return role === "gestor"
+    ? [...ABAS_COMUNS, ...ABAS_GESTOR, ...ABAS_EXTRA]
+    : [...ABAS_COMUNS, ...ABAS_EXTRA];
+}
 
 /**
  * Diálogo de feedback (sugestão / bug), disponível a parceiros e gestores. Campos:
  *  - Aba: onde o item está (select) · Tipo: sugestão | bug (toggle) · Descrição (textarea).
+ * A lista de abas é escopada pelo papel (parceiro não vê abas gestor-only).
  * Recebe o `trigger` (o botão que abre) via prop — quem monta decide a aparência.
  */
-export function FeedbackDialog({ trigger }: { trigger: React.ReactNode }) {
+export function FeedbackDialog({ role, trigger }: { role: Role; trigger: React.ReactNode }) {
+  const ABAS = abasDoPapel(role);
   const [aberto, setAberto] = useState(false);
   const [aba, setAba] = useState<string>("");
   const [tipo, setTipo] = useState<FeedbackTipo>("sugestao");
