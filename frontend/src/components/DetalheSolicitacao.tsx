@@ -44,11 +44,17 @@ export function DetalheSolicitacao({ detalhe }: { detalhe: SolicitacaoDetalhe })
 
       <Secao titulo="Médico">
         <Linha k="Nome" v={m.nome} />
-        <Linha k="CPF" v={m.cpf ?? "—"} />
-        <Linha k="Telefone" v={m.telefone ?? "—"} />
-        <Linha k="E-mail" v={m.email ?? "—"} />
-        <Linha k="PIX" v={m.pix ?? "—"} />
-        <Linha k="Nascimento" v={m.nascimento ?? "—"} />
+        {m.ambiguo ? (
+          <Linha k="Dados" v="Nomes iguais na planilha" />
+        ) : (
+          <>
+            <Linha k="CPF" v={m.cpf ?? "—"} />
+            <Linha k="Telefone" v={m.telefone ?? "—"} />
+            <Linha k="E-mail" v={m.email ?? "—"} />
+            <Linha k="PIX" v={m.pix ?? "—"} />
+            <Linha k="Nascimento" v={m.nascimento ?? "—"} />
+          </>
+        )}
       </Secao>
     </div>
   );

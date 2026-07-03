@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import {
+  AlertTriangle,
   KeyRound,
   Loader2,
   Pencil,
@@ -204,9 +205,20 @@ function CartaoParceiro({
                 ? "sem login"
                 : `${parceiro.logins.length} ${parceiro.logins.length === 1 ? "login" : "logins"}`}
             </Badge>
-            <Badge variant="outline">
-              {restrito ? `${ativas} de ${totalUnidades} unidades` : "todas as unidades"}
-            </Badge>
+            {restrito ? (
+              <Badge variant="outline">{`${ativas} de ${totalUnidades} unidades`}</Badge>
+            ) : (
+              // Allowlist nunca configurada (back-compat): o login vê TODAS as unidades da
+              // Contratante. Não fura isolamento cross-Contratante, mas é frouxo por dentro —
+              // sinaliza para o gestor abrir "Editar parceiro" e definir a allowlist explícita.
+              <Badge
+                variant="destructive"
+                title="Sem allowlist de unidades: este parceiro vê todas as unidades da Contratante. Abra 'Editar parceiro' para restringir."
+              >
+                <AlertTriangle className="size-3" />
+                unidades não configuradas
+              </Badge>
+            )}
           </div>
         </div>
       </div>

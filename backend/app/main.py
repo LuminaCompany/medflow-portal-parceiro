@@ -45,14 +45,25 @@ async def lifespan(app: FastAPI):
     yield
 
 
-app = FastAPI(title="MedFlow — Portal do Parceiro", version="1.0.0", lifespan=lifespan)
+# Em produção, oculta o contrato da API (docs/openapi) — reduz superfície de ataque.
+# Dados nunca vazam (tudo exige auth), mas não há motivo para expor o schema.
+_docs_off = settings.is_production
+app = FastAPI(
+    title="MedFlow — Portal do Parceiro",
+    version="1.0.0",
+    lifespan=lifespan,
+    docs_url=None if _docs_off else "/docs",
+    redoc_url=None if _docs_off else "/redoc",
+    openapi_url=None if _docs_off else "/openapi.json",
+)
 
 app.add_middleware(
     CORSMiddleware,
     allow_origins=settings.cors_origins_list,
     allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
+    # Explícito em vez de "*": só os verbos/headers que a API realmente usa.
+    allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+    allow_headers=["Authorization", "Content-Type"],
 )
 
 

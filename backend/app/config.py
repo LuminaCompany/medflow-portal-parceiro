@@ -37,10 +37,18 @@ class Settings(BaseSettings):
     # --- HTTP ---
     cors_origins: str = "http://localhost:3000"
 
+    # Ambiente de execução: em "production" desliga /docs, /redoc e /openapi.json
+    # (reduz superfície — o contrato da API não fica exposto). Default = dev.
+    app_env: str = "development"
+
     @property
     def cors_origins_list(self) -> list[str]:
         """`CORS_ORIGINS` é csv no env; expõe como lista para o middleware."""
         return [o.strip() for o in self.cors_origins.split(",") if o.strip()]
+
+    @property
+    def is_production(self) -> bool:
+        return self.app_env.strip().lower() == "production"
 
 
 @lru_cache

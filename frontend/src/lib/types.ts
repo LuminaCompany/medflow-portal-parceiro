@@ -43,6 +43,7 @@ export interface Medico {
   pix: string | null;
   pix_tipo: string | null;
   nascimento: string | null;
+  ambiguo?: boolean; // nome repetido na planilha → PII omitida
 }
 
 // Agregado do médico (mesmo Contratante, dentro do escopo) — card do painel lateral.

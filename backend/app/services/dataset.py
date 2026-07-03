@@ -32,13 +32,20 @@ class Dataset:
 
     validas: list[Solicitacao]
     pendencias: list[Pendencia]
-    base_medicos: dict[str, dict[str, str | None]]  # nome normalizado → PII
+    base_medicos: dict[str, dict[str, str | bool | None]]  # nome normalizado → PII
 
     def medico_de(self, cliente: str) -> Medico:
-        """PII do médico para o painel de detalhes (join por nome). Fallback: só o nome."""
+        """PII do médico para o painel de detalhes (join por nome). Fallback: só o nome.
+
+        Nome normalizado ambíguo (2+ médicos com mesmo nome na base, possível homônimo de
+        outra Contratante) → devolve só o nome + flag `ambiguo`, sem PII (não vaza dado do
+        homônimo). O `nome` vem da solicitação já escopada (R-001), não da base.
+        """
         dados = self.base_medicos.get(normalize_nome(cliente))
         if not dados:
             return Medico(nome=cliente)
+        if dados.get("ambiguo"):
+            return Medico(nome=cliente, ambiguo=True)
         return Medico(**dados)
 
 

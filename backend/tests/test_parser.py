@@ -5,6 +5,7 @@ from decimal import Decimal
 
 from app.sheets.parser import (
     formatar_codigo,
+    parse_base,
     parse_bool,
     parse_date_flexible,
     parse_money,
@@ -78,6 +79,54 @@ def test_linha_origem():
     rows = [_header(), _make_row(codigo="1", cliente="X", valor="10")]
     parsed = parse_solicitacoes(rows)
     assert parsed[0].linha_origem == 2
+
+
+def test_parse_base_nome_unico_expoe_pii():
+    rows = [
+        ["borrower_full_name", "borrower_taxpayer_id"],
+        ["Maria Souza", "333"],
+    ]
+    base = parse_base(rows)
+    assert base["maria souza"]["cpf"] == "333"
+    assert "ambiguo" not in base["maria souza"]
+
+
+def test_parse_base_nome_repetido_marca_ambiguo_sem_pii():
+    """Nome normalizado repetido com CPF DIFERENTE (homônimo real) → PII omitida (R-001)."""
+    rows = [
+        ["borrower_full_name", "borrower_taxpayer_id"],
+        ["Joao Silva", "111"],
+        ["joao  silva", "222"],  # mesmo nome normalizado, CPF diferente
+    ]
+    base = parse_base(rows)
+    assert base["joao silva"] == {"ambiguo": True}
+    assert "cpf" not in base["joao silva"]
+
+
+def test_parse_base_mesma_pessoa_varios_emprestimos_mantem_pii():
+    """1 linha por empréstimo: mesmo nome + MESMO CPF em N linhas = mesma pessoa, PII preservada."""
+    rows = [
+        ["borrower_full_name", "borrower_taxpayer_id", "borrower_pix_key"],
+        ["Ana Costa", "999", "ana@pix"],
+        ["ana  costa", "999", "ana@pix"],  # 2º empréstimo do mesmo médico
+        ["Ana Costa", "999", "ana@pix"],  # 3º empréstimo
+    ]
+    base = parse_base(rows)
+    assert base["ana costa"].get("ambiguo") is None
+    assert base["ana costa"]["cpf"] == "999"
+    assert base["ana costa"]["pix"] == "ana@pix"
+
+
+def test_parse_base_ambiguo_persiste_apos_terceira_linha_do_mesmo_cpf():
+    """Depois de virar ambíguo (2 CPFs), uma 3ª linha repetindo um CPF não ressuscita a PII."""
+    rows = [
+        ["borrower_full_name", "borrower_taxpayer_id"],
+        ["Rui Lima", "111"],
+        ["Rui Lima", "222"],  # ambíguo aqui
+        ["Rui Lima", "111"],  # não deve reexpor PII
+    ]
+    base = parse_base(rows)
+    assert base["rui lima"] == {"ambiguo": True}
 
 
 def _make_row(codigo="", cliente="", valor="", contratante="", quitado="", venc=""):

@@ -238,16 +238,34 @@ def parse_base(values: list[list[str]]) -> dict[str, dict[str, str | None]]:
     idx_pix_tipo = col("borrower_pix_key_type")
     idx_nasc = col("borrower_birth_date") or col("borrower_date_of_birth")
 
-    base: dict[str, dict[str, str | None]] = {}
+    base: dict[str, dict[str, str | bool | None]] = {}
     if idx_nome is None:
         return base
+    # A aba tem 1 linha por EMPRÉSTIMO, então o mesmo médico repete o nome em várias linhas.
+    # Nome repetido só é ambíguo (possível homônimo de OUTRA Contratante) quando há CPFs
+    # distintos — mesmo CPF em todas as linhas = mesma pessoa, PII legítima. Rastreia os CPFs
+    # vistos por nome; ao detectar 2+ distintos, marca ambíguo e omite a PII (R-001, Princípio VI).
+    cpfs_por_chave: dict[str, set[str]] = {}
     for row in values[1:]:
         nome = _trim(_cell(row, idx_nome))
         if not nome:
             continue
-        base[normalize_nome(nome)] = {
+        chave = normalize_nome(nome)
+        cpf = _cell(row, idx_cpf) if idx_cpf is not None else None
+        cpf_norm = _trim(cpf) if cpf else ""
+        vistos = cpfs_por_chave.setdefault(chave, set())
+        if cpf_norm:
+            vistos.add(cpf_norm)
+        if base.get(chave, {}).get("ambiguo"):
+            continue  # já resolvido como homônimo real
+        if len(vistos) > 1:
+            base[chave] = {"ambiguo": True}
+            continue
+        if chave in base:
+            continue  # mesma pessoa (mesmo CPF ou CPF ausente) — mantém a 1ª PII
+        base[chave] = {
             "nome": nome,
-            "cpf": _cell(row, idx_cpf) if idx_cpf is not None else None,
+            "cpf": cpf,
             "telefone": _cell(row, idx_tel) if idx_tel is not None else None,
             "email": _cell(row, idx_email) if idx_email is not None else None,
             "pix": _cell(row, idx_pix) if idx_pix is not None else None,

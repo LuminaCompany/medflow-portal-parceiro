@@ -54,6 +54,7 @@ class Medico(BaseModel):
     pix: str | None = None
     pix_tipo: str | None = None
     nascimento: str | None = None
+    ambiguo: bool = False  # nome repetido na base → PII omitida (possível homônimo)
 
 
 class Pendencia(BaseModel):

@@ -64,6 +64,7 @@ def serializa_medico(m: Medico) -> dict:
         "pix": m.pix,
         "pix_tipo": m.pix_tipo,
         "nascimento": m.nascimento,
+        "ambiguo": m.ambiguo,
     }
 
 
