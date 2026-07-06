@@ -156,34 +156,7 @@ function DashboardView() {
             />
           </div>
 
-          {/* Rebate mensal (verde) — acima da originação, mesmo tamanho (col-span-2) */}
-          <div className="grid gap-4 lg:grid-cols-3">
-            <Card className="p-5 lg:col-span-2">
-              <CardHeader className="px-0">
-                <CardTitle className="font-display text-lg font-bold">Rebate Mensal</CardTitle>
-                <CardDescription>Soma do rebate por mês.</CardDescription>
-              </CardHeader>
-              <CardContent className="px-0">
-                {data.serie_mensal.length > 0 ? (
-                  <GraficoRebate serie={data.serie_mensal} />
-                ) : (
-                  <Empty className="h-[300px]">
-                    <EmptyHeader>
-                      <EmptyMedia variant="icon">
-                        <Gift />
-                      </EmptyMedia>
-                      <EmptyTitle>Sem histórico ainda</EmptyTitle>
-                      <EmptyDescription>
-                        Quando houver rebate, a evolução mensal aparece aqui.
-                      </EmptyDescription>
-                    </EmptyHeader>
-                  </Empty>
-                )}
-              </CardContent>
-            </Card>
-          </div>
-
-          {/* Gráfico + ticket médio */}
+          {/* Solicitações mensais + ticket médio (acompanham este card) */}
           <div className="grid gap-4 lg:grid-cols-3">
             <Card className="p-5 lg:col-span-2">
               <CardHeader className="px-0">
@@ -226,6 +199,33 @@ function DashboardView() {
               </Link>
             </div>
           </div>
+
+          {/* Rebate mensal (verde) — abaixo das solicitações, mesmo tamanho (col-span-2) */}
+          <div className="grid gap-4 lg:grid-cols-3">
+            <Card className="p-5 lg:col-span-2">
+              <CardHeader className="px-0">
+                <CardTitle className="font-display text-lg font-bold">Rebate Mensal</CardTitle>
+                <CardDescription>Soma do rebate por mês.</CardDescription>
+              </CardHeader>
+              <CardContent className="px-0">
+                {data.serie_mensal.length > 0 ? (
+                  <GraficoRebate serie={data.serie_mensal} />
+                ) : (
+                  <Empty className="h-[300px]">
+                    <EmptyHeader>
+                      <EmptyMedia variant="icon">
+                        <Gift />
+                      </EmptyMedia>
+                      <EmptyTitle>Sem histórico ainda</EmptyTitle>
+                      <EmptyDescription>
+                        Quando houver rebate, a evolução mensal aparece aqui.
+                      </EmptyDescription>
+                    </EmptyHeader>
+                  </Empty>
+                )}
+              </CardContent>
+            </Card>
+          </div>
         </>
       )}
     </div>
@@ -237,7 +237,7 @@ function TicketMedio({ data }: { data: Overview }) {
     <Card className="p-5">
       <CardHeader className="px-0">
         <CardTitle className="font-display text-lg font-bold">Ticket Médio</CardTitle>
-        <CardDescription>Originação média por médico no recorte.</CardDescription>
+        <CardDescription>Média da originação por solicitação no recorte.</CardDescription>
       </CardHeader>
       <CardContent className="flex flex-col gap-3 px-0">
         <div className="flex items-center gap-2">
@@ -249,7 +249,7 @@ function TicketMedio({ data }: { data: Overview }) {
           </span>
         </div>
         <div className="text-xs text-muted-foreground">
-          {data.cards.medicos_impactados} médico(s) ·{" "}
+          {data.cards.total_solicitacoes} solicitação(ões) ·{" "}
           <span className="tabular-nums">{formatMoeda(data.cards.valor_total)}</span> originados
         </div>
       </CardContent>

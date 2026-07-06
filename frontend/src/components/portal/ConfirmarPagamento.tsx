@@ -50,7 +50,7 @@ export function PagarUnidade({
   }
 
   if (status === "pendente") {
-    return <AvisoEnviado aviso={aviso!} onMutate={onMutate} />;
+    return <AvisoEnviado aviso={aviso!} rebateAtivo={rebateAtivo} onMutate={onMutate} />;
   }
 
   // Sem aviso ativo. Nada pendente → nada a fazer.
@@ -76,8 +76,9 @@ function BotaoPagar({
   avisoRejeitado?: PagamentoAviso;
   onMutate: () => void;
 }) {
-  // Serviço de rebate ativo + o lote tem cashback → mostra Originação − Rebate = Valor a Pagar.
-  const mostrarRebate = rebateAtivo && Number(unidade.rebate) > 0;
+  // Serviço de rebate ativo → mostra Originação − Rebate = Valor a Pagar (mesmo com rebate 0,
+  // por consistência: quem tem o serviço vê sempre o desdobramento, ainda que não haja cashback).
+  const mostrarRebate = rebateAtivo;
   const [aberto, setAberto] = useState(false);
   const [enviando, setEnviando] = useState(false);
   const nPendentes = (unidade.solicitacoes ?? []).filter((s) => s.status !== "pago").length;
@@ -135,16 +136,16 @@ function BotaoPagar({
           <div className="flex flex-col items-center gap-2 rounded-xl border bg-muted/30 p-5 text-center">
             {mostrarRebate ? (
               <>
-                <div className="flex w-full flex-col gap-1.5">
-                  <div className="flex items-center justify-between text-sm">
-                    <span className="text-muted-foreground">Originação</span>
-                    <span className="font-medium tabular-nums text-muted-foreground">
+                <div className="flex w-full flex-col gap-2">
+                  <div className="flex items-center justify-between text-base">
+                    <span className="font-medium text-foreground">Originação</span>
+                    <span className="font-semibold tabular-nums text-foreground">
                       {formatMoeda(unidade.total_pendente)}
                     </span>
                   </div>
-                  <div className="flex items-center justify-between text-sm">
-                    <span className="text-muted-foreground">Rebate (cashback)</span>
-                    <span className="font-medium tabular-nums text-success">
+                  <div className="flex items-center justify-between text-base">
+                    <span className="font-medium text-success-ink">Rebate</span>
+                    <span className="font-bold tabular-nums text-success">
                       − {formatMoeda(unidade.rebate)}
                     </span>
                   </div>
@@ -200,11 +201,20 @@ function BotaoPagar({
   );
 }
 
-function AvisoEnviado({ aviso, onMutate }: { aviso: PagamentoAviso; onMutate: () => void }) {
+function AvisoEnviado({
+  aviso,
+  rebateAtivo = false,
+  onMutate,
+}: {
+  aviso: PagamentoAviso;
+  rebateAtivo?: boolean;
+  onMutate: () => void;
+}) {
   const [aberto, setAberto] = useState(false);
   const [cancelando, setCancelando] = useState(false);
-  // O aviso congela o rebate no envio: rebate > 0 ⟺ a Contratante tinha o serviço (feature 005).
-  const mostrarRebate = Number(aviso.rebate) > 0;
+  // Contratante com o serviço vê sempre o desdobramento (mesmo com rebate 0), casando com o
+  // modal de pagamento. Os valores exibidos seguem o snapshot congelado no envio (ADR 0004).
+  const mostrarRebate = rebateAtivo;
 
   async function cancelar() {
     setCancelando(true);
@@ -253,7 +263,7 @@ function AvisoEnviado({ aviso, onMutate }: { aviso: PagamentoAviso; onMutate: ()
                 <dd className="text-right font-medium tabular-nums text-muted-foreground">
                   {formatMoeda(aviso.valor)}
                 </dd>
-                <dt className="text-muted-foreground">Rebate (cashback)</dt>
+                <dt className="text-muted-foreground">Rebate</dt>
                 <dd className="text-right font-medium tabular-nums text-success">
                   − {formatMoeda(aviso.rebate)}
                 </dd>

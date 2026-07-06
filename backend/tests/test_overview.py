@@ -57,14 +57,14 @@ def test_serie_mensal_normalizada_aaaa_mm():
     assert serie["2026-02"] == "2500.00"  # 2000 + 500
 
 
-def test_ticket_medio_originacao_por_medico():
-    """Ticket Médio = Originação Total ÷ médicos distintos (média dos totais por médico)."""
+def test_ticket_medio_media_da_originacao():
+    """Ticket Médio = Originação Total ÷ nº de solicitações (média da coluna Originação)."""
     ov = overview(DATASET, _user("parceiro", BESA), hoje=HOJE)
-    # BESA: 3500 originados / 2 médicos (Ana=1500, Bruno=2000) = 1750.
-    assert ov["cards"]["ticket_medio"] == "1750.00"
+    # BESA: 3500 originados / 3 solicitações = 1166.67.
+    assert ov["cards"]["ticket_medio"] == "1166.67"
 
 
-def test_ticket_medio_sem_medicos_e_zero():
+def test_ticket_medio_sem_solicitacoes_e_zero():
     ov = overview([], _user("gestor", None), hoje=HOJE)
     assert ov["cards"]["ticket_medio"] == "0.00"
 

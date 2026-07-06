@@ -74,8 +74,8 @@ def overview(
     pagas = sum(1 for s in no_recorte if s.status == STATUS_PAGO)
     medicos = {s.cliente for s in no_recorte}
 
-    # Ticket Médio (RF-019b): Originação Total ÷ médicos distintos = média dos totais por médico.
-    ticket_medio = valor_total / len(medicos) if medicos else Decimal("0")
+    # Ticket Médio (RF-019b): Originação Total ÷ nº de solicitações = média da coluna Originação.
+    ticket_medio = valor_total / len(no_recorte) if no_recorte else Decimal("0")
 
     # Série mensal dentro do recorte (RF-020): originação e rebate (Σ cashback) por mês.
     por_mes: dict[str, Decimal] = defaultdict(lambda: Decimal("0"))
