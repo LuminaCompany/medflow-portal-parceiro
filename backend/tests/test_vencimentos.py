@@ -100,11 +100,25 @@ def test_parceiro_lotes_por_unidade_e_data_e_escopo():
     assert ub["data_vencimento"] is None
     assert ub["total_pendente"] == "0.00"
 
-    # ordena unidades por pendência desc (UA 1500 antes de UB 0); lotes da UA por data asc.
+    # ordena lotes por vencimento asc (vencido há mais tempo no topo); "Tudo pago" (UB) no fim.
     assert [l["unidade"] for l in linhas] == ["UA", "UA", "UB"]
     assert lotes_ua[0]["data_vencimento"] == venc_atraso.isoformat()
     # parceiro não recebe campos de gestor nas solicitações
     assert "lucro_operacional" not in venc["solicitacoes"][0]
+
+
+def test_parceiro_lotes_ordenados_vencido_ha_mais_tempo_no_topo():
+    """Vencido há mais tempo (menor data) no topo, independente da unidade; pago no fim."""
+    dataset = [
+        _sol(BESA, "1", "a_pagar", "500", HOJE + timedelta(days=5), unidade="UZ"),
+        _sol(BESA, "2", "atrasado", "100", HOJE - timedelta(days=2), unidade="UB"),
+        _sol(BESA, "3", "atrasado", "9000", HOJE - timedelta(days=30), unidade="UA"),
+        _sol(BESA, "4", "pago", "700", HOJE - timedelta(days=1), unidade="UC"),
+    ]
+    linhas = vencimentos_parceiro(dataset, _user("parceiro", BESA), hoje=HOJE)["unidades"]
+    # UA (-30d) mais vencido → topo; depois UB (-2d); UZ a vencer; UC "Tudo pago" no fim.
+    assert [l["unidade"] for l in linhas] == ["UA", "UB", "UZ", "UC"]
+    assert linhas[-1]["tudo_pago"] is True
 
 
 def test_parceiro_rebate_ativo_expoe_valor_a_pagar():

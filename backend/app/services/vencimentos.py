@@ -82,23 +82,17 @@ def _unidades_parceiro(
     (= total_pendente − rebate) — o modal de pagamento os usa (bate 1:1 com o snapshot do envio).
     Unidade sem pendência vira uma linha "Tudo pago" (data nula). Sem campos de gestor (R-001).
 
-    Ordena unidades por pendência desc, depois nome; dentro da unidade, lotes por data asc;
-    unidades "Tudo pago" caem no fim.
+    Ordena os lotes por data de vencimento asc (vencido há mais tempo no topo), independente
+    da unidade; linhas "Tudo pago" (sem pendência) caem no fim.
     """
     por_unidade: dict[str, list[Solicitacao]] = defaultdict(list)
     for s in sols:
         por_unidade[s.unidade].append(s)
 
-    unidades = []
+    linhas: list[dict] = []
     for unidade, lista in por_unidade.items():
         pendentes = [s for s in lista if is_pending(s.status)]
-        total_pendente = sum((s.valor for s in pendentes), Decimal("0"))
-        unidades.append((unidade, lista, pendentes, total_pendente))
-    unidades.sort(key=lambda t: (-t[3], t[0]))
-
-    linhas: list[dict] = []
-    for unidade, lista, pendentes, total_pendente in unidades:
-        if total_pendente == 0:
+        if not pendentes:
             # Unidade sem pendência: linha única "Tudo pago" (mantém a visão; pagas vivem
             # também na seção "Vencimentos Pagos"). Mostra todas as solicitações da unidade.
             lista.sort(key=lambda s: s.data_vencimento)
@@ -107,8 +101,11 @@ def _unidades_parceiro(
         por_data: dict[date, list[Solicitacao]] = defaultdict(list)
         for s in pendentes:
             por_data[s.data_vencimento].append(s)
-        for venc in sorted(por_data):
+        for venc in por_data:
             linhas.append(_linha_lote(unidade, venc, por_data[venc], hoje, rebate_ativo))
+
+    # Vencido há mais tempo (menor data) primeiro; "Tudo pago" (data nula) no fim.
+    linhas.sort(key=lambda l: (l["data_vencimento"] is None, l["data_vencimento"] or ""))
     return linhas
 
 

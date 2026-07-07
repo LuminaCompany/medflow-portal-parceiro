@@ -60,18 +60,10 @@ import type {
   VencimentosParceiro,
 } from "@/lib/types";
 
-type Periodo = "2d" | "1sem" | "2sem";
-const PERIODOS: { v: Periodo; label: string }[] = [
-  { v: "2d", label: "Próximos 2 dias" },
-  { v: "1sem", label: "Próxima semana" },
-  { v: "2sem", label: "Próximas 2 semanas" },
-];
-
 function VencimentosView() {
   const { me } = useMe();
   const papel = me?.role === "gestor" ? "gestor" : "parceiro";
   const { queryString } = useFiltros("vencimentos");
-  const [periodo, setPeriodo] = useState<Periodo>("1sem");
   const [parceiro, setParceiro] = useState<VencimentosParceiro | null>(null);
   const [gestor, setGestor] = useState<VencimentosGestor | null>(null);
   const [carregando, setCarregando] = useState(true);
@@ -85,7 +77,6 @@ function VencimentosView() {
     setCarregando(true);
     setErro(null);
     const params = new URLSearchParams(queryString);
-    params.set("proximos", periodo);
     apiGet<VencimentosParceiro | VencimentosGestor>(`/api/vencimentos?${params}`)
       .then((data) => {
         if (!ativo) return;
@@ -106,7 +97,7 @@ function VencimentosView() {
     return () => {
       ativo = false;
     };
-  }, [periodo, queryString, tentativa]);
+  }, [queryString, tentativa]);
 
   return (
     <div className="flex flex-col gap-6">
@@ -131,12 +122,7 @@ function VencimentosView() {
       ) : gestor ? (
         <VistaGestor data={gestor} />
       ) : parceiro ? (
-        <VistaParceiro
-          data={parceiro}
-          periodo={periodo}
-          onPeriodo={setPeriodo}
-          rebateAtivo={!!me?.rebate_ativo}
-        />
+        <VistaParceiro data={parceiro} rebateAtivo={!!me?.rebate_ativo} />
       ) : null}
     </div>
   );
@@ -144,21 +130,16 @@ function VencimentosView() {
 
 function VistaParceiro({
   data,
-  periodo,
-  onPeriodo,
   rebateAtivo,
 }: {
   data: VencimentosParceiro;
-  periodo: Periodo;
-  onPeriodo: (p: Periodo) => void;
   rebateAtivo: boolean;
 }) {
   // Defesa: payload pode chegar parcial (campos ausentes) — normaliza arrays.
-  const unidades = data.unidades ?? [];
-  const atrasados = data.atrasados ?? [];
-  const proximos = data.proximos ?? [];
+  // Vencimentos = só lotes com pendência (a vencer + vencidos); "Tudo pago" vive na seção Pagos.
+  const unidades = (data.unidades ?? []).filter((u) => !u.tudo_pago);
   const pagos = data.pagos ?? [];
-  const temAtraso = atrasados.length > 0;
+  const temAtraso = (data.cards?.n_atrasadas ?? 0) > 0;
 
   // Estado dos avisos de pagamento por unidade (feature 004) — define o controle de cada linha.
   const [avisos, setAvisos] = useState<Record<string, PagamentoAviso>>({});
@@ -183,13 +164,13 @@ function VistaParceiro({
           tone="danger"
           highlight={temAtraso}
         />
-        <StatCard index={2} label="Próximos" value={String(proximos.length)} icon={CalendarClock} tone="brand" />
+        <StatCard index={2} label="A Vencer" value={String(data.cards.n_a_pagar)} icon={CalendarClock} tone="brand" />
         <StatCard index={3} label="Pagos" value={String(pagos.length)} icon={CircleCheckBig} tone="success" />
       </div>
 
       <Secao
         titulo="Vencimentos"
-        descricao="Cada linha é um lote (unidade + data de vencimento), pago em separado. Prazo em vermelho quando vencido. Abra para ver as solicitações."
+        descricao="A vencer e vencidos, ordenados por data (vencido há mais tempo no topo). Cada linha é um lote (unidade + data de vencimento), pago em separado. Prazo em vermelho quando vencido. Abra para ver as solicitações."
       >
         {unidades.length > 0 ? (
           <Accordion type="multiple" className="flex flex-col gap-2">
@@ -212,53 +193,7 @@ function VistaParceiro({
         )}
       </Secao>
 
-      {temAtraso ? (
-        <Card className="gap-0 border-destructive/30 bg-destructive/[0.03] p-0 ring-destructive/15">
-          <div className="flex items-center gap-3 border-b border-destructive/20 px-5 py-4">
-            <span className="grid size-9 place-items-center rounded-xl bg-destructive/12 text-destructive ring-1 ring-destructive/20">
-              <TriangleAlert className="size-[18px]" />
-            </span>
-            <div>
-              <h2 className="font-display text-base font-bold text-destructive">Vencimentos por atraso</h2>
-              <p className="text-xs text-destructive/80">
-                {new Set(atrasados.map((s) => s.data_vencimento)).size} data(s) vencida(s) — requer atenção
-              </p>
-            </div>
-          </div>
-          <div className="p-3">
-            <SecaoVencimentos itens={atrasados} tone="danger" defaultOpenFirst />
-          </div>
-        </Card>
-      ) : null}
-
-      <Secao
-        titulo="Próximos Vencimentos"
-        descricao="Solicitações pendentes agrupadas por data de quitação."
-        acao={
-          <Select value={periodo} onValueChange={(v) => onPeriodo(v as Periodo)}>
-            <SelectTrigger className="h-9" aria-label="Período dos próximos vencimentos">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectGroup>
-                {PERIODOS.map((p) => (
-                  <SelectItem key={p.v} value={p.v}>
-                    {p.label}
-                  </SelectItem>
-                ))}
-              </SelectGroup>
-            </SelectContent>
-          </Select>
-        }
-      >
-        {proximos.length > 0 ? (
-          <SecaoVencimentos itens={proximos} tone="brand" />
-        ) : (
-          <EmptyVenc titulo="Nenhum vencimento próximo" descricao="Nada vencendo no período selecionado." />
-        )}
-      </Secao>
-
-      <Secao titulo="Vencimentos Pagos" descricao="Datas já confirmadas como pagas.">
+      <Secao titulo="Pagos" descricao="Todos os vencimentos já confirmados como pagos.">
         {pagos.length > 0 ? (
           <SecaoVencimentos itens={pagos} tone="success" />
         ) : (
