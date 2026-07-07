@@ -201,7 +201,10 @@ function SolicitacoesView() {
           colunas={colsVisiveis}
           itens={itens}
           onRowClick={abrirDetalhe}
-          getKey={(s) => s.codigo}
+          // Código é único por Contratante (feature 009). Na visão do gestor (que vê todas),
+          // dois Contratantes de mesmo trigrama podem colidir (duplicado é permitido) — qualifica
+          // a key com o contratante p/ não repetir key no React. `contratante` só vem p/ gestor.
+          getKey={(s) => (s.contratante ? `${s.contratante}|${s.codigo}` : s.codigo)}
           ordem={ordem}
           onOrdenar={ordenarPor}
           groupBy={

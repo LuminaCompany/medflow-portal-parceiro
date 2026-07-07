@@ -5,7 +5,6 @@ from decimal import Decimal
 
 from app.domain.validation import (
     MOTIVO_CLIENTE_AUSENTE,
-    MOTIVO_CODIGO_AUSENTE,
     MOTIVO_CLIENTE_SEM_CADASTRO,
     MOTIVO_CONTRATANTE_DIVERGENTE,
     MOTIVO_CONTRATANTE_FALTANDO,
@@ -49,11 +48,12 @@ def test_cliente_ausente():
     assert MOTIVO_CLIENTE_AUSENTE in pend[0].motivos
 
 
-def test_codigo_ausente_vira_pendencia_sem_derrubar_carga():
-    """Código vazio (com cliente+valor preenchidos) → quarentena, não AssertionError na carga."""
+def test_codigo_origem_ausente_ainda_e_valida():
+    """Feature 009: o código não vem mais do sheet — código de origem vazio NÃO reprova.
+    O portal gera o código (sequência por Contratante)."""
     validas, pend = particiona([_valida(codigo=None)], CADASTRO, HOJE)
-    assert len(validas) == 0
-    assert MOTIVO_CODIGO_AUSENTE in pend[0].motivos
+    assert len(validas) == 1 and len(pend) == 0
+    assert validas[0].codigo == "BES-00001"  # trigrama padrão de "BESA Medical Group" + seq 1
 
 
 def test_contratante_faltando():
@@ -103,3 +103,40 @@ def test_multiplos_motivos():
     _, pend = particiona([item], CADASTRO, HOJE)
     assert len(pend[0].motivos) >= 3
     assert pend[0].linha_origem == 2
+
+
+# --- Feature 009: sequência do código gerada pelo portal ---------------------------------
+
+
+def test_sequencia_por_contratante_ordena_por_data_do_pedido():
+    """Números são por Contratante, começam em 00001 e seguem a data do pedido (desempate =
+    linha de origem). A ordem das linhas no sheet não fura a sequência por data."""
+    itens = [
+        _valida(cliente="Dr. A", data_pedido=date(2026, 3, 1), linha_origem=2),
+        _valida(cliente="Dr. A", data_pedido=date(2026, 1, 1), linha_origem=3),
+        _valida(cliente="Dr. A", data_pedido=date(2026, 2, 1), linha_origem=4),
+    ]
+    validas, _ = particiona(itens, CADASTRO, HOJE)
+    por_data = {s.data_pedido: s.codigo for s in validas}
+    assert por_data[date(2026, 1, 1)] == "BES-00001"
+    assert por_data[date(2026, 2, 1)] == "BES-00002"
+    assert por_data[date(2026, 3, 1)] == "BES-00003"
+
+
+def test_sequencia_independente_entre_contratantes():
+    """Cada Contratante tem a própria sequência começando em 00001 (feature 009)."""
+    itens = [
+        _valida(cliente="Dr. A", contratante="BESA Medical Group"),
+        _valida(cliente="Dr. B", contratante="A.H. GESTÃO MÉDICA"),
+    ]
+    validas, _ = particiona(itens, CADASTRO, HOJE)
+    codigos = {s.contratante: s.codigo for s in validas}
+    assert codigos["BESA Medical Group"] == "BES-00001"
+    assert codigos["A.H. GESTÃO MÉDICA"] == "AHG-00001"  # trigrama padrão (sem acento, letras)
+
+
+def test_trigrama_override_muda_o_prefixo():
+    """Override do gestor (mapa `trigramas`) substitui as 3 letras padrão no código."""
+    itens = [_valida(cliente="Dr. A", contratante="BESA Medical Group")]
+    validas, _ = particiona(itens, CADASTRO, HOJE, trigramas={"BESA Medical Group": "XYZ"})
+    assert validas[0].codigo == "XYZ-00001"

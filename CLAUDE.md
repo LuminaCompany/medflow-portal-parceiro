@@ -105,3 +105,20 @@ dados → entra na varredura de isolamento (`test_e2e_isolamento.py`, teste que 
 - Frontend: `ordem`+`onOrdenar` em `DataTable.tsx`, `sortable` nas colunas
   (`colunasSolicitacao.tsx`), `apiGetBlob` em `lib/api.ts`,
   `components/portal/ExportarSolicitacoes.tsx`, wiring em `app/(portal)/solicitacoes/page.tsx`
+
+## Feature: Código gerado pelo portal (trigrama + sequência) (009)
+O código **não vem mais** da coluna "código de solicitação" do sheet — o portal o monta inteiro:
+`TRI-00001` (MAIÚSCULAS, número sempre 5 dígitos zero-padded). **Trigrama** = 3 primeiras letras
+da Contratante (sem acento), editável por Contratante no "Editar parceiro" (fan-out no
+`app_metadata`, igual cor/rebate; em branco volta ao padrão; **duplicado é permitido**). A
+**sequência é por Contratante** e começa em `00001`, ordenada por **data do pedido** (desempate =
+linha de origem no sheet) — é "pura" (não usa o código de origem): inserir/editar uma linha com
+data anterior **desloca** os números seguintes daquela Contratante (aceito) e defasa os códigos
+congelados nos avisos (feat. 004/005, só histórico). Coluna do sheet permanece (mapeamento
+posicional intacto), só o valor é ignorado; código de origem ausente não reprova mais a linha.
+- Backend: `trigrama_default/efetivo/sanitiza` + `formatar_codigo(tri, seq)` em `sheets/parser.py`;
+  numeração em `domain/validation.py` (`_numera_e_constroi`, param `trigramas`); injeção do mapa em
+  `services/dataset.py` (`_carrega_trigramas`, falha→padrão); `trigrama`/`mapa_trigramas` em
+  `services/partners.py`; `EditarConfigIn.trigrama` + invalidação do dataset em `routers/partners.py`
+- Frontend: `Parceiro.trigrama` em `lib/types.ts`; campo no "Editar parceiro" e badge do prefixo em
+  `parceiros/page.tsx`; `getKey` qualificado por contratante na lista do gestor (`solicitacoes/page.tsx`)

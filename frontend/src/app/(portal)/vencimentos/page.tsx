@@ -359,22 +359,24 @@ function ContratanteLinha({
     >
       {/* +50% de altura de linha (min-h ~60px) vs. ~40px anterior. */}
       <AccordionTrigger className="min-h-[3.75rem] items-center px-4 py-3 hover:no-underline data-[state=open]:bg-muted/40">
-        <div className="flex flex-1 items-center gap-3">
-          <span className="w-44 shrink-0 truncate text-sm font-medium">{c.contratante}</span>
+        <div className="flex min-w-0 flex-1 items-center gap-2 sm:gap-3">
+          <span className="min-w-0 truncate text-sm font-medium">{c.contratante}</span>
           {c.tudo_pago ? (
             <>
               <div className="flex-1" />
-              <span className="inline-flex items-center gap-1.5 rounded-full bg-success/12 px-2.5 py-1 text-xs font-semibold text-success-ink">
+              <span className="inline-flex shrink-0 items-center gap-1.5 rounded-full bg-success/12 px-2.5 py-1 text-xs font-semibold text-success-ink">
                 <CircleCheckBig className="size-3.5" />
                 Tudo pago
               </span>
             </>
           ) : (
             <>
-              {/* Status do contratante (Vencido / A Vencer) no lugar da antiga barra segmentada. */}
-              <StatusLote vencido={Number(c.vencido) || 0} aVencer={Number(c.a_vencer) || 0} />
+              {/* Status do contratante — escondido no mobile pra caber a linha (evita corte). */}
+              <span className="hidden shrink-0 sm:inline-flex">
+                <StatusLote vencido={Number(c.vencido) || 0} aVencer={Number(c.a_vencer) || 0} />
+              </span>
               <div className="flex-1" />
-              <span className="w-32 shrink-0 text-right text-sm font-semibold tabular-nums">
+              <span className="shrink-0 text-right text-sm font-semibold tabular-nums">
                 {formatMoeda(c.total_pendente)}
               </span>
             </>
@@ -416,15 +418,17 @@ function UnidadeLinhaParceiro({
       className="overflow-hidden rounded-xl border bg-card not-last:border-b"
     >
       {/* Trigger + controle "Pagar" como IRMÃOS (nunca <button> dentro de <button>).
-          O wrapper faz o cabeçalho (1º filho) crescer e o controle ficar fixo à direita. */}
-      <div className="flex items-center gap-2 pr-3 [&>*:first-child]:min-w-0 [&>*:first-child]:flex-1">
+          No desktop (sm+) ficam lado a lado, com o cabeçalho crescendo e o controle à direita.
+          No mobile viram COLUNA: o controle "Pagar" cai numa faixa própria e nunca é empurrado
+          pra fora da tela (era a causa de "a janela de pagar não abre em telas pequenas"). */}
+      <div className="flex flex-col sm:flex-row sm:items-center sm:gap-2 sm:pr-3 [&>*:first-child]:min-w-0 sm:[&>*:first-child]:flex-1">
         <AccordionTrigger className="min-h-[3.75rem] items-center px-4 py-3 hover:no-underline data-[state=open]:bg-muted/40">
-          <div className="flex flex-1 items-center gap-3">
-            <span className="w-40 shrink-0 truncate text-sm font-medium">{u.unidade}</span>
+          <div className="flex min-w-0 flex-1 items-center gap-2 sm:gap-3">
+            <span className="min-w-0 truncate text-sm font-medium">{u.unidade}</span>
             {u.tudo_pago ? (
               <>
                 <div className="flex-1" />
-                <span className="inline-flex items-center gap-1.5 rounded-full bg-success/12 px-2.5 py-1 text-xs font-semibold text-success-ink">
+                <span className="inline-flex shrink-0 items-center gap-1.5 rounded-full bg-success/12 px-2.5 py-1 text-xs font-semibold text-success-ink">
                   <CircleCheckBig className="size-3.5" />
                   Tudo pago
                 </span>
@@ -433,17 +437,22 @@ function UnidadeLinhaParceiro({
               <>
                 {/* Prazo do lote em destaque (vermelho se vencido). */}
                 <BadgePrazo data={u.data_vencimento} />
-                {/* Status do lote (Vencido / A Vencer) no lugar da antiga barra segmentada. */}
-                <StatusLote vencido={Number(u.vencido) || 0} aVencer={Number(u.a_vencer) || 0} />
+                {/* Status do lote — escondido no mobile (o BadgePrazo já sinaliza atraso) pra caber. */}
+                <span className="hidden shrink-0 sm:inline-flex">
+                  <StatusLote vencido={Number(u.vencido) || 0} aVencer={Number(u.a_vencer) || 0} />
+                </span>
                 <div className="flex-1" />
-                <span className="w-28 shrink-0 text-right text-sm font-semibold tabular-nums">
+                <span className="shrink-0 text-right text-sm font-semibold tabular-nums">
                   {formatMoeda(u.total_pendente)}
                 </span>
               </>
             )}
           </div>
         </AccordionTrigger>
-        <PagarUnidade unidade={u} aviso={aviso} rebateAtivo={rebateAtivo} onMutate={onMutate} />
+        {/* empty:hidden → some a faixa quando não há controle (unidade toda paga sem aviso). */}
+        <div className="border-t bg-muted/10 px-4 py-2 empty:hidden sm:border-0 sm:bg-transparent sm:p-0">
+          <PagarUnidade unidade={u} aviso={aviso} rebateAtivo={rebateAtivo} onMutate={onMutate} />
+        </div>
       </div>
       <AccordionContent className="bg-muted/20 px-3 pt-1 pb-3">
         <DataTable colunas={colsSolicUnidade} itens={u.solicitacoes ?? []} getKey={(s) => s.codigo} />
@@ -576,7 +585,7 @@ function Secao({
   children: React.ReactNode;
 }) {
   return (
-    <Card className="p-5">
+    <Card className="p-4 sm:p-5">
       <CardHeader className="flex-row items-start justify-between gap-3 px-0">
         <div>
           <CardTitle role="heading" aria-level={2} className="font-display text-base font-bold">

@@ -11,9 +11,12 @@ from dataclasses import dataclass, field
 from datetime import date, datetime
 from decimal import Decimal, InvalidOperation
 
-# Prefixo do código exibido = 4 primeiras letras da contratante (data-model §1, CONTEXT.md).
-TAMANHO_SIGLA = 4
-SIGLA_SEM_CONTRATANTE = "???"
+# Prefixo do código exibido = TRIGRAMA da contratante (feature 009). Padrão = 3 primeiras
+# letras; o gestor pode sobrescrever por Contratante ("Editar parceiro"). O NÚMERO não vem
+# mais do sheet: o portal gera uma sequência por Contratante (ver validation._numera_e_constroi).
+TAMANHO_TRIGRAMA = 3
+TRIGRAMA_SEM_CONTRATANTE = "???"
+LARGURA_SEQUENCIA = 5  # números sempre com 5 dígitos, zero-padded (00001, 00002, …)
 
 # Índices de coluna na aba "Dados Tratados" (data-model §1). Mapear por posição é o contrato.
 COL_CODIGO = 0
@@ -280,20 +283,33 @@ def normalize_nome(nome: str) -> str:
     return " ".join(str(nome).strip().lower().split())
 
 
-def _sigla_contratante(contratante: str | None) -> str:
-    """4 primeiras letras [A-Z] da contratante, sem acento, MAIÚSCULAS (CONTEXT.md).
+def _letras_maiusculas(texto: str | None) -> list[str]:
+    """Letras [A-Z] de `texto`, sem acento, MAIÚSCULAS. Ignora espaços, dígitos e pontuação."""
+    if not texto:
+        return []
+    sem_acento = unicodedata.normalize("NFKD", str(texto)).encode("ascii", "ignore").decode()
+    return [c for c in sem_acento.upper() if c.isalpha()]
 
-    Ignora espaços, dígitos e pontuação. Sem contratante resolvida → placeholder `???`.
+
+def trigrama_default(contratante: str | None) -> str:
+    """Trigrama padrão = 3 primeiras letras da contratante (sem acento, MAIÚSCULAS).
+
+    Sem contratante resolvida (ou sem letras) → placeholder `???` (feature 009).
     """
-    if not contratante:
-        return SIGLA_SEM_CONTRATANTE
-    sem_acento = unicodedata.normalize("NFKD", str(contratante)).encode("ascii", "ignore").decode()
-    letras = [c for c in sem_acento.upper() if c.isalpha()]
-    return "".join(letras[:TAMANHO_SIGLA]) or SIGLA_SEM_CONTRATANTE
+    return "".join(_letras_maiusculas(contratante)[:TAMANHO_TRIGRAMA]) or TRIGRAMA_SEM_CONTRATANTE
 
 
-def formatar_codigo(contratante: str | None, numero: str | None) -> str | None:
-    """Código exibido `AAAA-N` (ex.: `BESA-1102`). None se não há número (data-model §1)."""
-    if numero is None or str(numero).strip() == "":
-        return None
-    return f"{_sigla_contratante(contratante)}-{str(numero).strip()}"
+def sanitiza_trigrama(bruto: str | None) -> str:
+    """Override do gestor → até 3 letras MAIÚSCULAS sem acento. Vazio/sem letras → `""`
+    (o chamador cai no `trigrama_default`)."""
+    return "".join(_letras_maiusculas(bruto)[:TAMANHO_TRIGRAMA])
+
+
+def trigrama_efetivo(contratante: str | None, override: str | None = None) -> str:
+    """Trigrama que aparece no código: override do gestor (se houver) ou o padrão da contratante."""
+    return sanitiza_trigrama(override) or trigrama_default(contratante)
+
+
+def formatar_codigo(trigrama: str, sequencia: int) -> str:
+    """Código exibido `TRI-00001` (feature 009). `sequencia` é 1-based, por Contratante."""
+    return f"{trigrama}-{sequencia:0{LARGURA_SEQUENCIA}d}"

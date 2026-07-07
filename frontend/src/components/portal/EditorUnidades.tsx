@@ -70,7 +70,7 @@ export function EditorUnidades({
         />
       </div>
 
-      <ScrollArea className="h-72 rounded-lg border">
+      <ScrollArea className="h-56 rounded-lg border sm:h-72">
         <ul className="divide-y">
           {filtradas.map((u) => {
             const ligado = selecionadas.has(u.unidade);

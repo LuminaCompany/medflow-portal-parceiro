@@ -49,9 +49,11 @@ export function Topbar({
       </span>
 
       {gestor && (
-        <span className="ml-auto inline-flex items-center gap-1.5 rounded-full bg-brand-subtle px-3 py-1 text-xs font-medium text-brand-ink">
+        <span className="ml-auto hidden items-center gap-1.5 rounded-full bg-brand-subtle px-3 py-1 text-xs font-medium text-brand-ink sm:inline-flex">
           <span className="size-1.5 rounded-full bg-brand-bright" />
-          Visão do gestor · todos os parceiros
+          {/* Texto completo só em telas largas; no mobile encurta pra não espremer o título. */}
+          <span className="hidden md:inline">Visão do gestor · todos os parceiros</span>
+          <span className="md:hidden">Visão do gestor</span>
         </span>
       )}
     </header>

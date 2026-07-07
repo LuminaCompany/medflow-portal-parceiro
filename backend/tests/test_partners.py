@@ -169,6 +169,47 @@ def test_editar_config_rebate_preserva_unidades_e_cor():
     assert users[0].app_metadata["rebate_ativo"] is True
 
 
+def test_editar_config_fanout_trigrama_e_mapa():
+    """Feature 009: trigrama sanitizado (MAIÚSCULAS, 3 letras) com fan-out; entra no mapa."""
+    users = [
+        FakeUser("u1", "a@besa.com", _meta(contratante="BESA")),
+        FakeUser("u2", "b@besa.com", _meta(contratante="BESA")),
+    ]
+    svc = _svc(users)
+    out = svc.editar_config(contratante="BESA", trigrama="xy.zw")  # sanitiza → XYZ
+    assert out["trigrama"] == "XYZ"
+    assert users[0].app_metadata["trigrama"] == "XYZ"
+    assert users[1].app_metadata["trigrama"] == "XYZ"
+    assert svc.mapa_trigramas() == {"BESA": "XYZ"}
+    # Reset ao padrão ("" persiste, não ressuscita override antigo pelo merge raso do GoTrue).
+    out_reset = svc.editar_config(contratante="BESA", trigrama="")
+    assert out_reset["trigrama"] == "BES"  # default = 3 primeiras letras
+    assert users[0].app_metadata["trigrama"] == ""
+    assert svc.mapa_trigramas() == {}  # sem override explícito
+
+
+def test_listar_partners_expoe_trigrama_efetivo():
+    users = [
+        FakeUser("u1", "a@besa.com", _meta(contratante="BESA")),
+        FakeUser("u2", "b@ah.com", {"role": "parceiro", "contratante": "AH", "trigrama": "ZZZ"}),
+    ]
+    partners = {p["contratante"]: p for p in _svc(users).listar_partners()}
+    assert partners["BESA"]["trigrama"] == "BES"  # padrão (sem override)
+    assert partners["AH"]["trigrama"] == "ZZZ"  # override do gestor
+
+
+def test_criar_segundo_login_herda_trigrama():
+    users = [
+        FakeUser("u1", "a@besa.com", {"role": "parceiro", "contratante": "BESA", "trigrama": "ZZZ"}),
+    ]
+    svc = _svc(users)
+    out = svc.criar_login(
+        email="b@besa.com", nome_exibicao="B", contratante="BESA", senha_inicial="x"
+    )
+    assert out["trigrama"] == "ZZZ"
+    assert users[1].app_metadata["trigrama"] == "ZZZ"
+
+
 def test_listar_partners_expoe_rebate_ativo():
     users = [
         FakeUser("u1", "a@besa.com", _meta(contratante="BESA")),

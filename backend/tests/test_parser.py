@@ -10,24 +10,44 @@ from app.sheets.parser import (
     parse_date_flexible,
     parse_money,
     parse_solicitacoes,
+    sanitiza_trigrama,
+    trigrama_default,
+    trigrama_efetivo,
 )
 
 
-def test_formatar_codigo_prefixo_contratante():
-    assert formatar_codigo("Besa", "1102") == "BESA-1102"
-    assert formatar_codigo("BESA Medical Group", "99") == "BESA-99"
+def test_trigrama_default_tres_primeiras_letras():
+    assert trigrama_default("Besa") == "BES"
+    assert trigrama_default("BESA Medical Group") == "BES"
 
 
-def test_formatar_codigo_sem_acento_e_ignora_espacos():
-    assert formatar_codigo("São Lucas", "7") == "SAOL-7"
-    assert formatar_codigo("A.H. Gestão", "5") == "AHGE-5"
+def test_trigrama_default_sem_acento_e_ignora_espacos_pontuacao():
+    assert trigrama_default("São Lucas") == "SAO"
+    assert trigrama_default("A.H. Gestão") == "AHG"
 
 
-def test_formatar_codigo_bordas():
-    assert formatar_codigo(None, "10") == "???-10"  # sem contratante
-    assert formatar_codigo("Besa", None) is None  # sem número
-    assert formatar_codigo("Besa", "  ") is None
-    assert formatar_codigo("AB", "3") == "AB-3"  # menos de 4 letras
+def test_trigrama_default_bordas():
+    assert trigrama_default(None) == "???"  # sem contratante
+    assert trigrama_default("12 3") == "???"  # sem letras
+    assert trigrama_default("AB") == "AB"  # menos de 3 letras
+
+
+def test_sanitiza_trigrama_override_do_gestor():
+    assert sanitiza_trigrama("xyz") == "XYZ"
+    assert sanitiza_trigrama("a.b.c.d") == "ABC"  # corta em 3, tira pontuação
+    assert sanitiza_trigrama("  ") == ""  # vazio → cai no default no chamador
+
+
+def test_trigrama_efetivo_prefere_override():
+    assert trigrama_efetivo("BESA Medical Group", "XYZ") == "XYZ"
+    assert trigrama_efetivo("BESA Medical Group", "") == "BES"
+    assert trigrama_efetivo("BESA Medical Group", None) == "BES"
+
+
+def test_formatar_codigo_sequencia_5_digitos():
+    assert formatar_codigo("BES", 1) == "BES-00001"
+    assert formatar_codigo("XYZ", 42) == "XYZ-00042"
+    assert formatar_codigo("???", 12345) == "???-12345"
 
 
 def test_money_us_format():

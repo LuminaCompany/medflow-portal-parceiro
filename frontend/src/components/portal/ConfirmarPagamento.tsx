@@ -105,7 +105,7 @@ function BotaoPagar({
 
   return (
     <>
-      <div className="flex shrink-0 items-center gap-2">
+      <div className="flex w-full items-center justify-end gap-2 sm:w-auto sm:shrink-0">
         {avisoRejeitado ? (
           <span
             className="inline-flex items-center gap-1 rounded-full bg-destructive/10 px-2 py-0.5 text-xs font-medium text-danger-ink"

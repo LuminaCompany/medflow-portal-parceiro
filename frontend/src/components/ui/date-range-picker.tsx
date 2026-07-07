@@ -81,6 +81,17 @@ export function DateRangePicker({
     intervaloParaRange(value)
   )
 
+  // Um calendário de 2 meses (~520px) estoura a viewport no celular. Abaixo de 640px cai pra 1
+  // mês. Estado inicial = prop (igual no SSR → sem mismatch); o efeito ajusta no cliente.
+  const [mesesVisiveis, setMesesVisiveis] = React.useState(numberOfMonths)
+  React.useEffect(() => {
+    const mq = window.matchMedia("(min-width: 640px)")
+    const aplicar = () => setMesesVisiveis(mq.matches ? numberOfMonths : 1)
+    aplicar()
+    mq.addEventListener("change", aplicar)
+    return () => mq.removeEventListener("change", aplicar)
+  }, [numberOfMonths])
+
   // Sincroniza o rascunho com o valor externo só na abertura (não bagunça a seleção em curso).
   function onOpenChange(next: boolean) {
     if (next) setRascunho(intervaloParaRange(value))
@@ -115,12 +126,12 @@ export function DateRangePicker({
           )}
         </Button>
       </PopoverTrigger>
-      <PopoverContent className="w-auto p-0" align="start">
+      <PopoverContent className="w-auto max-w-[calc(100vw-1rem)] overflow-x-auto p-0" align="start">
         <Calendar
           mode="range"
           autoFocus
           locale={ptBR}
-          numberOfMonths={numberOfMonths}
+          numberOfMonths={mesesVisiveis}
           selected={rascunho}
           defaultMonth={rascunho?.from}
           onSelect={setRascunho}

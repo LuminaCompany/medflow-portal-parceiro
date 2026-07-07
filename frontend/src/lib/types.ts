@@ -162,6 +162,7 @@ export interface Parceiro {
   cor: string | null;
   unidades: string[] | null; // allowlist sincronizada (null = todas / legado)
   rebate_ativo: boolean; // serviço de rebate (cashback) ativo (feature 005)
+  trigrama: string; // prefixo do código (feature 009): 3 letras, ex. "BES" → BES-00001
   logins: ParceiroLogin[];
 }
 

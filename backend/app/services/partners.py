@@ -12,6 +12,7 @@ Modelo (feature 003): **Parceiro = Contratante**. A config de parceiro (`cor` + 
 from supabase import Client
 
 from app.services.cores import cor_para
+from app.sheets.parser import sanitiza_trigrama, trigrama_efetivo
 
 ROLE_PARCEIRO = "parceiro"
 
@@ -69,16 +70,23 @@ def _rebate_ativo(user: object) -> bool:
     return bool(_app_meta(user).get("rebate_ativo", False))
 
 
+def _trigrama_override(user: object) -> str:
+    """Override cru de trigrama do login (feature 009). Vazio = usa o padrão da contratante."""
+    return sanitiza_trigrama(_app_meta(user).get("trigrama"))
+
+
 def _serializa(user: object) -> dict:
     created = getattr(user, "created_at", None)
+    contratante = _app_meta(user).get("contratante")
     return {
         "id": str(getattr(user, "id", "")),
         "email": getattr(user, "email", "") or "",
         "nome_exibicao": _nome(user),
-        "contratante": _app_meta(user).get("contratante"),
+        "contratante": contratante,
         "cor": _cor(user),
         "unidades": _unidades(user),
         "rebate_ativo": _rebate_ativo(user),
+        "trigrama": trigrama_efetivo(contratante, _trigrama_override(user)),
         "created_at": created.isoformat() if hasattr(created, "isoformat") else created,
     }
 
@@ -114,6 +122,9 @@ class PartnersService:
                     "cor": self._cor_canonica(logins, contratante),
                     "unidades": self._unidades_canonica(logins),
                     "rebate_ativo": self._rebate_ativo_canonica(logins),
+                    "trigrama": trigrama_efetivo(
+                        contratante, self._trigrama_override_canonica(logins)
+                    ),
                     "logins": [_serializa(u) for u in logins],
                 }
             )
@@ -146,6 +157,22 @@ class PartnersService:
                 out[contratante] = unidades
         return out
 
+    def mapa_trigramas(self) -> dict[str, str]:
+        """Mapa contratante -> trigrama override (feature 009). Só Contratantes com override
+        explícito entram; as demais caem no trigrama padrão no gerador de código. Alimenta o
+        build do dataset (`services/dataset._carrega_trigramas`)."""
+        grupos: dict[str, list[object]] = {}
+        for u in self._parceiros():
+            contratante = _app_meta(u).get("contratante")
+            if contratante:
+                grupos.setdefault(contratante, []).append(u)
+        out: dict[str, str] = {}
+        for contratante, logins in grupos.items():
+            override = self._trigrama_override_canonica(logins)
+            if override:
+                out[contratante] = override
+        return out
+
     # ---- Escrita -----------------------------------------------------------------
 
     def criar_login(
@@ -168,10 +195,12 @@ class PartnersService:
             cor_final = self._cor_canonica(existentes, contratante)
             unidades_final = self._unidades_canonica(existentes)
             rebate_final = self._rebate_ativo_canonica(existentes)
+            trigrama_final = self._trigrama_override_canonica(existentes)
         else:
             cor_final = cor or cor_para(contratante)
             unidades_final = unidades_default
             rebate_final = False
+            trigrama_final = ""  # Contratante nova → sem override; usa o trigrama padrão.
 
         app_metadata: dict = {"role": ROLE_PARCEIRO, "contratante": contratante}
         if cor_final:
@@ -180,6 +209,8 @@ class PartnersService:
             app_metadata["unidades"] = unidades_final
         if rebate_final:
             app_metadata["rebate_ativo"] = True
+        if trigrama_final:
+            app_metadata["trigrama"] = trigrama_final
         try:
             created = self._admin.auth.admin.create_user(
                 {
@@ -221,24 +252,29 @@ class PartnersService:
         cor: str | None = None,
         unidades: list[str] | None = None,
         rebate_ativo: bool | None = None,
+        trigrama: str | None = None,
     ) -> dict:
-        """Edita a config da Contratante (cor, allowlist de unidades e/ou serviço de rebate)
-        com **fan-out**: grava em TODOS os logins dela (mantém o vínculo sincronizado).
-        RF-027a + feature 003; `rebate_ativo` na feature 005."""
+        """Edita a config da Contratante (cor, allowlist de unidades, serviço de rebate e/ou
+        trigrama do código) com **fan-out**: grava em TODOS os logins dela (mantém o vínculo
+        sincronizado). RF-027a + feature 003; `rebate_ativo` na 005; `trigrama` na 009."""
         logins = self._logins_da_contratante(contratante)
         if not logins:
             raise PartnersError("Parceiro sem logins para configurar.")
-        if cor is None and unidades is None and rebate_ativo is None:
+        if cor is None and unidades is None and rebate_ativo is None and trigrama is None:
             raise PartnersError("Nada para atualizar.")
+        # Override sanitizado desta chamada (até 3 letras). `""` reseta para o trigrama padrão.
+        trigrama_novo = sanitiza_trigrama(trigrama) if trigrama is not None else None
         for login in logins:
             meta: dict = {"role": ROLE_PARCEIRO, "contratante": contratante}
             # Merge raso do GoTrue: reenvia a config existente + as mudanças desta chamada.
             cor_atual = _app_meta(login).get("cor")
             unidades_atual = _unidades(login)
             rebate_atual = _rebate_ativo(login)
+            trigrama_atual = _trigrama_override(login)
             cor_final = cor if cor is not None else cor_atual
             unidades_final = unidades if unidades is not None else unidades_atual
             rebate_final = rebate_ativo if rebate_ativo is not None else rebate_atual
+            trigrama_final = trigrama_novo if trigrama_novo is not None else trigrama_atual
             if cor_final:
                 meta["cor"] = cor_final
             if unidades_final is not None:
@@ -247,6 +283,9 @@ class PartnersService:
             # reenviado. Omitir quando False deixava o `true` antigo sobreviver → desligar o rebate
             # nunca persistia e o parceiro seguia pagando Originação − Rebate.
             meta["rebate_ativo"] = bool(rebate_final)
+            # Idem trigrama: gravar sempre (mesmo `""`) para o merge raso não ressuscitar o
+            # override antigo — "voltar ao padrão" precisa persistir o vazio.
+            meta["trigrama"] = trigrama_final
             try:
                 self._admin.auth.admin.update_user_by_id(
                     str(getattr(login, "id", "")), {"app_metadata": meta}
@@ -255,6 +294,9 @@ class PartnersService:
                 raise PartnersError(
                     "Não foi possível atualizar a configuração do parceiro."
                 ) from exc
+        override_final = (
+            trigrama_novo if trigrama_novo is not None else self._trigrama_override_canonica(logins)
+        )
         return {
             "contratante": contratante,
             "cor": cor if cor is not None else self._cor_canonica(logins, contratante),
@@ -262,6 +304,7 @@ class PartnersService:
             "rebate_ativo": (
                 rebate_ativo if rebate_ativo is not None else self._rebate_ativo_canonica(logins)
             ),
+            "trigrama": trigrama_efetivo(contratante, override_final),
         }
 
     def remover(self, user_id: str) -> None:
@@ -304,6 +347,15 @@ class PartnersService:
     def _rebate_ativo_canonica(logins: list[object]) -> bool:
         """Serviço de rebate da Contratante: ativo se qualquer login o tem (config sincronizada)."""
         return any(_rebate_ativo(u) for u in logins)
+
+    @staticmethod
+    def _trigrama_override_canonica(logins: list[object]) -> str:
+        """Primeiro override de trigrama encontrado (config sincronizada); `""` se nenhum."""
+        for u in logins:
+            override = _trigrama_override(u)
+            if override:
+                return override
+        return ""
 
     def _listar_todos(self) -> list:
         """Pagina por todos os usuários do Auth (Admin API)."""

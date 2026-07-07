@@ -15,6 +15,7 @@ from app.auth.supabase import get_supabase_auth
 from app.services.cores import cor_para
 from app.services.dataset import get_dataset_service
 from app.services.partners import PartnersError, PartnersService
+from app.sheets.parser import trigrama_default
 
 router = APIRouter(prefix="/api/admin", tags=["admin"])
 
@@ -40,6 +41,9 @@ class EditarConfigIn(BaseModel):
     cor: str | None = Field(default=None, pattern=COR_HEX)
     unidades: list[str] | None = None
     rebate_ativo: bool | None = None
+    # Trigrama do código (feature 009): até 3 letras; `""` reseta ao padrão. Sanitizado no
+    # serviço (tira acento/pontuação, MAIÚSCULAS). max_length folgado p/ o serviço aparar.
+    trigrama: str | None = Field(default=None, max_length=16)
 
 
 def _service() -> PartnersService:
@@ -66,6 +70,7 @@ def listar_partners(_: GestorUser) -> list[dict]:
                 "cor": cor_para(contratante),
                 "unidades": None,
                 "rebate_ativo": False,
+                "trigrama": trigrama_default(contratante),  # feature 009: prefixo padrão
                 "logins": [],
             }
     return sorted(com_login.values(), key=lambda p: p["contratante"].lower())
@@ -156,17 +161,23 @@ def editar_login(user_id: str, body: EditarLoginIn, _: GestorUser) -> dict:
 
 @router.put("/partners")
 def editar_config(body: EditarConfigIn, _: GestorUser) -> dict:
-    """Edita a config do Parceiro (cor + allowlist de unidades + serviço de rebate) — fan-out
-    para todos os logins."""
+    """Edita a config do Parceiro (cor + allowlist de unidades + serviço de rebate + trigrama
+    do código) — fan-out para todos os logins."""
     try:
-        return _service().editar_config(
+        resultado = _service().editar_config(
             contratante=body.contratante,
             cor=body.cor,
             unidades=body.unidades,
             rebate_ativo=body.rebate_ativo,
+            trigrama=body.trigrama,
         )
     except PartnersError as exc:
         raise _bad_request(exc) from exc
+    # Trigrama entra no código gerado (feature 009): invalida o dataset cacheado p/ o novo
+    # prefixo valer já na próxima leitura, sem esperar o TTL.
+    if body.trigrama is not None:
+        get_dataset_service().invalidate()
+    return resultado
 
 
 @router.delete("/parceiros/{user_id}", status_code=status.HTTP_204_NO_CONTENT)

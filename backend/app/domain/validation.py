@@ -5,15 +5,20 @@ e é removida do dataset válido (some de toda outra visão/agregação — RF-0
 Derivado em memória a cada carga: corrigiu a fonte, a linha volta sozinha (self-healing).
 """
 
+from collections import defaultdict
 from datetime import date
 
 from app.domain.datas import hoje as hoje_operacao
 from app.domain.models import Pendencia, Solicitacao
 from app.domain.status import status, status_label
-from app.sheets.parser import ParsedSolicitacao, formatar_codigo, normalize_nome
+from app.sheets.parser import (
+    ParsedSolicitacao,
+    formatar_codigo,
+    normalize_nome,
+    trigrama_efetivo,
+)
 
 # Motivos legíveis (data-model §6) — strings exibidas ao gestor.
-MOTIVO_CODIGO_AUSENTE = "Código ausente"
 MOTIVO_CLIENTE_AUSENTE = "Cliente ausente"
 MOTIVO_CONTRATANTE_FALTANDO = "Contratante faltando"
 MOTIVO_CLIENTE_SEM_CADASTRO = "Cliente sem cadastro"
@@ -32,12 +37,8 @@ def _motivos(item: ParsedSolicitacao, cadastro: dict[str, str]) -> list[str]:
     """Coleta TODOS os motivos de reprovação (uma linha pode acumular vários)."""
     motivos: list[str] = list(item.parse_errors)
 
-    # Código é obrigatório: sem ele o item não vira Solicitacao válida (bate o assert em
-    # _para_solicitacao). Sem essa checagem, uma linha com cliente+valor mas código vazio
-    # passava a validação e derrubava a carga inteira do dataset.
-    if not item.codigo:
-        motivos.append(MOTIVO_CODIGO_AUSENTE)
-
+    # O código não vem mais do sheet (feature 009): o portal o gera. Logo, código de origem
+    # ausente NÃO reprova a linha — a validação exige só os campos de negócio abaixo.
     if not item.cliente:
         motivos.append(MOTIVO_CLIENTE_AUSENTE)
 
@@ -74,13 +75,13 @@ def _motivos(item: ParsedSolicitacao, cadastro: dict[str, str]) -> list[str]:
     return motivos
 
 
-def _para_solicitacao(item: ParsedSolicitacao, hoje: date) -> Solicitacao:
-    """Constrói o modelo válido (campos obrigatórios já garantidos pela validação)."""
-    assert item.codigo and item.cliente and item.contratante
+def _para_solicitacao(item: ParsedSolicitacao, hoje: date, codigo: str) -> Solicitacao:
+    """Constrói o modelo válido. `codigo` já é o gerado pelo portal (`_numera_e_constroi`)."""
+    assert item.cliente and item.contratante
     assert item.valor is not None and item.data_pedido and item.data_vencimento
     status_key = status(item.quitado, item.data_vencimento, hoje)
     return Solicitacao(
-        codigo=formatar_codigo(item.contratante, item.codigo),
+        codigo=codigo,
         quitado=item.quitado,
         cliente=item.cliente,
         valor=item.valor,
@@ -108,8 +109,9 @@ def _para_solicitacao(item: ParsedSolicitacao, hoje: date) -> Solicitacao:
 
 
 def _para_pendencia(item: ParsedSolicitacao, motivos: list[str]) -> Pendencia:
+    # Pendências não entram na sequência gerada (feature 009): identifica-se pela linha do sheet.
     return Pendencia(
-        codigo=formatar_codigo(item.contratante, item.codigo) or f"(linha {item.linha_origem})",
+        codigo=f"(linha {item.linha_origem})",
         cliente=item.cliente,
         contratante=item.contratante,
         valor=item.valor,
@@ -120,23 +122,51 @@ def _para_pendencia(item: ParsedSolicitacao, motivos: list[str]) -> Pendencia:
     )
 
 
+def _numera_e_constroi(
+    validos: list[ParsedSolicitacao],
+    hoje: date,
+    trigramas: dict[str, str],
+) -> list[Solicitacao]:
+    """Gera o código de cada válida (feature 009): sequência POR Contratante, ordenada por
+    data do pedido (desempate estável = linha de origem no sheet). Prefixo = trigrama efetivo
+    da Contratante (`trigramas` traz os overrides do gestor; ausente → trigrama padrão).
+
+    A sequência é "pura" — não depende do código de origem do sheet. Recalculada a cada carga:
+    inserir/editar uma linha com data anterior desloca os números seguintes daquela Contratante.
+    """
+    por_contratante: dict[str, list[ParsedSolicitacao]] = defaultdict(list)
+    for item in validos:
+        por_contratante[item.contratante].append(item)  # type: ignore[arg-type]
+
+    saida: list[Solicitacao] = []
+    for contratante, grupo in por_contratante.items():
+        grupo.sort(key=lambda i: (i.data_pedido, i.linha_origem))
+        trigrama = trigrama_efetivo(contratante, trigramas.get(contratante))
+        for sequencia, item in enumerate(grupo, start=1):
+            saida.append(_para_solicitacao(item, hoje, formatar_codigo(trigrama, sequencia)))
+    return saida
+
+
 def particiona(
     itens: list[ParsedSolicitacao],
     cadastro: dict[str, str],
     hoje: date | None = None,
+    trigramas: dict[str, str] | None = None,
 ) -> tuple[list[Solicitacao], list[Pendencia]]:
     """Particiona normalizados em (válidas, pendências).
 
-    `cadastro`: mapa cliente→contratante (verdade do vínculo). Toda tela usa `validas`;
-    `/api/admin/pendencias` usa `pendencias`.
+    `cadastro`: mapa cliente→contratante (verdade do vínculo). `trigramas`: overrides de
+    prefixo por Contratante (feature 009; vazio = usa o padrão de 3 letras). Toda tela usa
+    `validas`; `/api/admin/pendencias` usa `pendencias`.
     """
     hoje = hoje or hoje_operacao()
-    validas: list[Solicitacao] = []
+    validos: list[ParsedSolicitacao] = []
     pendencias: list[Pendencia] = []
     for item in itens:
         motivos = _motivos(item, cadastro)
         if motivos:
             pendencias.append(_para_pendencia(item, motivos))
         else:
-            validas.append(_para_solicitacao(item, hoje))
+            validos.append(item)
+    validas = _numera_e_constroi(validos, hoje, trigramas or {})
     return validas, pendencias

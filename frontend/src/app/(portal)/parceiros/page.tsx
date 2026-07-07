@@ -199,6 +199,9 @@ function CartaoParceiro({
         <div className="min-w-0">
           <p className="truncate text-base font-semibold">{parceiro.contratante || "—"}</p>
           <div className="mt-1 flex flex-wrap items-center gap-2 text-sm text-muted-foreground">
+            <Badge variant="outline" className="font-mono" title="Prefixo do código (feature 009)">
+              {parceiro.trigrama}-00001
+            </Badge>
             <Badge variant={semLogin ? "destructive" : "outline"}>
               <Users className="size-3" />
               {semLogin
@@ -394,6 +397,7 @@ function DialogConfig({
   const [cor, setCor] = useState(COR_PADRAO);
   const [selecionadas, setSelecionadas] = useState<Set<string>>(new Set());
   const [rebateAtivo, setRebateAtivo] = useState(false);
+  const [trigrama, setTrigrama] = useState("");
   const [erro, setErro] = useState<string | null>(null);
   const [salvando, setSalvando] = useState(false);
 
@@ -401,6 +405,7 @@ function DialogConfig({
     if (!parceiro) return;
     setCor(parceiro.cor ?? COR_PADRAO);
     setRebateAtivo(parceiro.rebate_ativo);
+    setTrigrama(parceiro.trigrama ?? "");
     setErro(null);
     if (parceiro.unidades !== null) {
       setSelecionadas(new Set(parceiro.unidades));
@@ -432,6 +437,7 @@ function DialogConfig({
         cor,
         unidades: [...selecionadas],
         rebate_ativo: rebateAtivo,
+        trigrama, // "" reseta ao padrão (3 primeiras letras da Contratante)
       });
       toast.success("Parceiro atualizado.");
       onFechar();
@@ -451,14 +457,42 @@ function DialogConfig({
             Editar {parceiro?.contratante}
           </DialogTitle>
           <DialogDescription>
-            Cor de identificação e quais unidades este parceiro enxerga. Vale para todos os logins dele.
+            Cor de identificação, trigrama do código e quais unidades este parceiro enxerga. Vale
+            para todos os logins dele.
           </DialogDescription>
         </DialogHeader>
 
         <div className="grid gap-6 sm:grid-cols-[220px_1fr]">
-          <div className="flex flex-col gap-2">
-            <span className="text-sm leading-snug font-medium">Cor do parceiro</span>
-            <ColorPicker value={cor} onChange={setCor} />
+          <div className="flex flex-col gap-4">
+            <div className="flex flex-col gap-2">
+              <span className="text-sm leading-snug font-medium">Cor do parceiro</span>
+              <ColorPicker value={cor} onChange={setCor} />
+            </div>
+            <div className="flex flex-col gap-2">
+              <FieldLabel htmlFor="cfg-trigrama">Trigrama do código</FieldLabel>
+              <Input
+                id="cfg-trigrama"
+                value={trigrama}
+                onChange={(e) =>
+                  // Só letras, MAIÚSCULAS, no máximo 3 (feature 009). Vazio = usa o padrão.
+                  setTrigrama(
+                    e.target.value
+                      .normalize("NFD")
+                      .replace(/[^a-zA-Z]/g, "")
+                      .toUpperCase()
+                      .slice(0, 3),
+                  )
+                }
+                maxLength={3}
+                placeholder="ex.: BES"
+                className="font-mono uppercase"
+              />
+              <p className="text-xs text-muted-foreground">
+                Prefixo do código em todo o portal — ex.:{" "}
+                <span className="font-mono">{(trigrama || "BES")}-00001</span>. Máx. 3 letras;
+                em branco usa as 3 primeiras da Contratante.
+              </p>
+            </div>
           </div>
           <div className="flex flex-col gap-2">
             <span className="text-sm leading-snug font-medium">Unidades vinculadas</span>
