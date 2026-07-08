@@ -114,6 +114,37 @@ def test_export_ignora_contratante_de_outro_no_filtro():
     assert "Dr. 99" not in valores
 
 
+def test_export_lote_so_traz_o_proprio_parceiro():
+    # Export por lote da aba Vencimentos: escopado como toda leitura. BESA só vê a própria
+    # linha ("1"/"UPA BESA"), jamais a de AH. Lê as células do workbook (zip não serve p/ a
+    # varredura por substring — por isso um teste dedicado que abre o arquivo).
+    from io import BytesIO
+
+    from openpyxl import load_workbook
+
+    resp = client.get("/api/vencimentos/export?unidade=UPA%20BESA&data_vencimento=2026-07-01")
+    assert resp.status_code == 200
+    ws = load_workbook(BytesIO(resp.content)).active
+    valores = {str(c.value) for row in ws.iter_rows() for c in row if c.value is not None}
+    assert "Dr. 1" in valores
+    for marca in MARCAS_DE_AH + ("Dr. 99", "Hosp AH"):
+        assert marca not in valores, f"VAZAMENTO no export de lote: {marca!r}"
+
+
+def test_export_lote_de_outra_unidade_vem_vazio():
+    # Forçar a unidade de AH ("Hosp AH") não fura o escopo: o arquivo sai sem nenhuma linha de
+    # AH (fora do escopo do parceiro BESA) — só o cabeçalho.
+    from io import BytesIO
+
+    from openpyxl import load_workbook
+
+    resp = client.get("/api/vencimentos/export?unidade=Hosp%20AH&data_vencimento=2026-07-01")
+    assert resp.status_code == 200
+    ws = load_workbook(BytesIO(resp.content)).active
+    valores = {str(c.value) for row in ws.iter_rows() for c in row if c.value is not None}
+    assert "Dr. 99" not in valores
+
+
 def test_detalhe_de_outro_parceiro_404():
     resp = client.get("/api/solicitacoes/99")
     assert resp.status_code == 404

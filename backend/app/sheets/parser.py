@@ -6,6 +6,7 @@ para a área de Pendências (gestor acha rápido). Campos não parseáveis viram
 partição válida/pendência é decidida depois em `domain/validation.py`.
 """
 
+import re
 import unicodedata
 from dataclasses import dataclass, field
 from datetime import date, datetime
@@ -96,16 +97,30 @@ def parse_money(raw: str | None) -> Decimal | None:
 
 
 def parse_percent(raw: str | None) -> Decimal | None:
-    """`"6.00%"` → Decimal("6.00"). Só exibição; não entra em cálculo do portal."""
+    """Percentual da planilha → Decimal na escala HUMANA (6% → Decimal("6"), não "0.06").
+
+    A planilha é lida em `UNFORMATTED_VALUE` (client.py): uma célula formatada como
+    porcentagem volta como FRAÇÃO e SEM o símbolo (6% → `0.06`). Sem escalar, o painel
+    mostrava "0,06%" no lugar de "6,00%". Regras:
+      - raw traz "%" (string já formatada, ex.: "6.00%") → é o percentual humano, não escala;
+      - raw sem "%" e 0 < |valor| < 1 → é a fração do Sheets → multiplica por 100;
+      - senão mantém (ex.: número 6 já em escala humana).
+    Só exibição; não entra em cálculo do portal.
+    """
     if raw is None:
         return None
-    cleaned = str(raw).replace("%", "").replace(" ", "").replace(",", "").strip()
+    texto = str(raw)
+    tem_simbolo = "%" in texto
+    cleaned = texto.replace("%", "").replace(" ", "").replace(",", "").strip()
     if cleaned == "":
         return None
     try:
-        return Decimal(cleaned)
+        valor = Decimal(cleaned)
     except InvalidOperation:
         return None
+    if not tem_simbolo and 0 < abs(valor) < 1:
+        valor *= 100
+    return valor
 
 
 def parse_date_flexible(raw: str | None) -> date | None:
@@ -146,6 +161,46 @@ def _cell(row: list[str], idx: int) -> str | None:
         value = row[idx]
         return value if value != "" else None
     return None
+
+
+# Telefone BR: DDD opcional entre parênteses + número de 8/9 dígitos (com separador opcional).
+_TELEFONE_RE = re.compile(r"\(?\d{2}\)?[\s.\-]*\d{4,5}[\s.\-]?\d{4}")
+
+
+def normaliza_telefone(raw: str | None) -> str | None:
+    """Extrai o 1º telefone bem-formado da célula da base.
+
+    A base do CRM às vezes concatena o MESMO número repetido na célula (ex.:
+    `"(62) 99196-0546(62) 99196-0546991960546"`), que aparecia duplicado no painel. Pega só a
+    1ª ocorrência que casa o padrão BR. Sem casar nada, devolve o valor original (nunca perde
+    dado — no máximo mostra o texto cru).
+    """
+    if raw is None:
+        return None
+    texto = str(raw).strip()
+    if texto == "":
+        return None
+    m = _TELEFONE_RE.search(texto)
+    return m.group(0).strip() if m else texto
+
+
+def normaliza_cpf(raw: str | None) -> str | None:
+    """Reconstrói o CPF quando o Sheets derruba o zero à esquerda.
+
+    A base às vezes guarda o CPF como NÚMERO: lido em `UNFORMATTED_VALUE`, ele volta sem os
+    zeros à esquerda (`04810942104` → `4810942104`, 10 dígitos — como aparecia no painel).
+    Só reconstrói quando é número PURO com tamanho plausível de CPF (9–11 dígitos), zerando à
+    esquerda até 11. Valor já mascarado (`048.109.421-04`), curto demais (stub de teste) ou
+    longo demais é devolvido como veio — nunca perde nem inventa dado.
+    """
+    if raw is None:
+        return None
+    texto = str(raw).strip()
+    if texto == "":
+        return None
+    if texto.isdigit() and 9 <= len(texto) <= 11:
+        return texto.zfill(11)
+    return texto
 
 
 def _trim(raw: str | None) -> str | None:
@@ -254,8 +309,9 @@ def parse_base(values: list[list[str]]) -> dict[str, dict[str, str | None]]:
         if not nome:
             continue
         chave = normalize_nome(nome)
-        cpf = _cell(row, idx_cpf) if idx_cpf is not None else None
-        cpf_norm = _trim(cpf) if cpf else ""
+        cpf = normaliza_cpf(_cell(row, idx_cpf)) if idx_cpf is not None else None
+        # Dedup por DÍGITOS (robusto a máscara vs. número puro do mesmo médico).
+        cpf_norm = re.sub(r"\D", "", cpf) if cpf else ""
         vistos = cpfs_por_chave.setdefault(chave, set())
         if cpf_norm:
             vistos.add(cpf_norm)
@@ -269,7 +325,7 @@ def parse_base(values: list[list[str]]) -> dict[str, dict[str, str | None]]:
         base[chave] = {
             "nome": nome,
             "cpf": cpf,
-            "telefone": _cell(row, idx_tel) if idx_tel is not None else None,
+            "telefone": normaliza_telefone(_cell(row, idx_tel)) if idx_tel is not None else None,
             "email": _cell(row, idx_email) if idx_email is not None else None,
             "pix": _cell(row, idx_pix) if idx_pix is not None else None,
             "pix_tipo": _cell(row, idx_pix_tipo) if idx_pix_tipo is not None else None,

@@ -18,6 +18,7 @@ import { StatCard } from "@/components/portal/StatCard";
 import { BadgePrazo } from "@/components/portal/BadgePrazo";
 import { ErroCarregamento } from "@/components/portal/ErroCarregamento";
 import { PagarUnidade } from "@/components/portal/ConfirmarPagamento";
+import { ExportarLote } from "@/components/portal/ExportarLote";
 import { SecaoVencimentos } from "@/components/portal/SecaoVencimentos";
 import {
   Accordion,
@@ -323,9 +324,11 @@ function ContratanteLinha({
         <div className="flex flex-col gap-1.5">
           {agrupar === "vencimento"
             ? lotesDoContratante(c).map((l) => (
-                <LoteRow key={chaveLote(l.unidade, l.data)} lote={l} />
+                <LoteRow key={chaveLote(l.unidade, l.data)} lote={l} contratante={c.contratante} />
               ))
-            : (c.unidades ?? []).map((u) => <UnidadeRow key={u.unidade} u={u} />)}
+            : (c.unidades ?? []).map((u) => (
+                <UnidadeRow key={u.unidade} u={u} contratante={c.contratante} />
+              ))}
         </div>
       </AccordionContent>
     </AccordionItem>
@@ -352,12 +355,18 @@ function UnidadeLinhaParceiro({
       value={chave}
       className="overflow-hidden rounded-xl border bg-card not-last:border-b"
     >
-      {/* Trigger + controle "Pagar" como IRMÃOS (nunca <button> dentro de <button>).
-          No desktop (sm+) ficam lado a lado, com o cabeçalho crescendo e o controle à direita.
-          No mobile viram COLUNA: o controle "Pagar" cai numa faixa própria e nunca é empurrado
-          pra fora da tela (era a causa de "a janela de pagar não abre em telas pequenas"). */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:gap-2 sm:pr-3 [&>*:first-child]:min-w-0 sm:[&>*:first-child]:flex-1">
-        <AccordionTrigger className="min-h-[3.75rem] items-center px-4 py-3 hover:no-underline data-[state=open]:bg-muted/40">
+      {/* Exportar + Trigger + controle "Pagar" como IRMÃOS (nunca <button> dentro de <button>).
+          "Exportar" fica à ESQUERDA da barra; no desktop (sm+) ficam lado a lado, com o
+          cabeçalho crescendo e o "Pagar" à direita. No mobile o "Pagar" cai numa faixa própria
+          e nunca é empurrado pra fora da tela (era a causa de "a janela de pagar não abre em
+          telas pequenas"). */}
+      <div className="flex flex-col sm:flex-row sm:items-center sm:gap-2 sm:pr-3">
+        {/* O AccordionTrigger vira um <header flex> que NÃO cresce sozinho — o seletor de
+            último filho faz o header preencher a barra p/ o spacer empurrar o valor à direita. */}
+        <div className="flex min-w-0 flex-1 items-center gap-2 pl-3 sm:pl-4 [&>*:last-child]:min-w-0 [&>*:last-child]:flex-1">
+          {/* Exportar SÓ deste lote (unidade + vencimento) — modelo da planilha-mestre. */}
+          <ExportarLote unidade={u.unidade} dataVencimento={u.data_vencimento} />
+          <AccordionTrigger className="min-h-[3.75rem] flex-1 items-center px-2 py-3 hover:no-underline data-[state=open]:bg-muted/40">
           <div className="flex min-w-0 flex-1 items-center gap-2 sm:gap-3">
             <span className="min-w-0 truncate text-sm font-medium">{u.unidade}</span>
             {u.tudo_pago ? (
@@ -384,6 +393,7 @@ function UnidadeLinhaParceiro({
             )}
           </div>
         </AccordionTrigger>
+        </div>
         {/* empty:hidden → some a faixa quando não há controle (unidade toda paga sem aviso). */}
         <div className="border-t bg-muted/10 px-4 py-2 empty:hidden sm:border-0 sm:bg-transparent sm:p-0">
           <PagarUnidade unidade={u} aviso={aviso} rebateAtivo={rebateAtivo} onMutate={onMutate} />
@@ -434,15 +444,18 @@ const colsSolicUnidade: Coluna<Solicitacao>[] = [
 ];
 
 // Clicar na unidade abre uma janela grande com TODAS as solicitações (scrollável).
-function UnidadeRow({ u }: { u: UnidadeVencimentos }) {
+// "Exportar" (à esquerda) é IRMÃO do gatilho do diálogo — exporta a unidade inteira.
+function UnidadeRow({ u, contratante }: { u: UnidadeVencimentos; contratante: string }) {
   const solicitacoes = u.solicitacoes ?? [];
   const n = solicitacoes.length;
   return (
-    <Dialog>
+    <div className="flex items-center gap-2">
+      <ExportarLote unidade={u.unidade} contratante={contratante} />
+      <Dialog>
       <DialogTrigger asChild>
         <button
           type="button"
-          className="flex w-full items-center gap-3 rounded-lg border bg-card px-3 py-2.5 text-left transition-colors hover:bg-muted/50 focus-visible:ring-2 focus-visible:ring-ring/50 focus-visible:outline-none"
+          className="flex w-full flex-1 items-center gap-3 rounded-lg border bg-card px-3 py-2.5 text-left transition-colors hover:bg-muted/50 focus-visible:ring-2 focus-visible:ring-ring/50 focus-visible:outline-none"
         >
           <span className="truncate text-sm font-medium">{u.unidade}</span>
           <BadgeStatus status={u.status} />
@@ -465,19 +478,23 @@ function UnidadeRow({ u }: { u: UnidadeVencimentos }) {
           <DataTable colunas={colsSolicUnidade} itens={solicitacoes} getKey={(s) => s.codigo} />
         </div>
       </DialogContent>
-    </Dialog>
+      </Dialog>
+    </div>
   );
 }
 
 // Lote (unidade + vencimento) na visão do gestor: prazo + valor; abre janela com as solicitações.
-function LoteRow({ lote }: { lote: LoteGestor }) {
+// "Exportar" (à esquerda) é IRMÃO do gatilho do diálogo — exporta só este lote.
+function LoteRow({ lote, contratante }: { lote: LoteGestor; contratante: string }) {
   const n = lote.sols.length;
   return (
-    <Dialog>
+    <div className="flex items-center gap-2">
+      <ExportarLote unidade={lote.unidade} dataVencimento={lote.data} contratante={contratante} />
+      <Dialog>
       <DialogTrigger asChild>
         <button
           type="button"
-          className="flex w-full items-center gap-3 rounded-lg border bg-card px-3 py-2.5 text-left transition-colors hover:bg-muted/50 focus-visible:ring-2 focus-visible:ring-ring/50 focus-visible:outline-none"
+          className="flex w-full flex-1 items-center gap-3 rounded-lg border bg-card px-3 py-2.5 text-left transition-colors hover:bg-muted/50 focus-visible:ring-2 focus-visible:ring-ring/50 focus-visible:outline-none"
         >
           <span className="truncate text-sm font-medium">{lote.unidade}</span>
           <BadgePrazo data={lote.data} />
@@ -504,7 +521,8 @@ function LoteRow({ lote }: { lote: LoteGestor }) {
           <DataTable colunas={colsSolicUnidade} itens={lote.sols} getKey={(s) => s.codigo} />
         </div>
       </DialogContent>
-    </Dialog>
+      </Dialog>
+    </div>
   );
 }
 

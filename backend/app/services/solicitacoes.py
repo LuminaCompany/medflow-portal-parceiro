@@ -6,11 +6,12 @@ Busca/filtra/pagina/agrupa sobre o dataset VÁLIDO escopado (R-001). Agrupamento
 """
 
 from collections.abc import Callable
+from datetime import date
 from decimal import Decimal
 from io import BytesIO
 
 from openpyxl import Workbook
-from openpyxl.styles import Font
+from openpyxl.styles import Alignment, Font, PatternFill
 from openpyxl.utils import get_column_letter
 
 from app.domain.filtros.engine import FiltroAplicado
@@ -137,6 +138,20 @@ def listar_solicitacoes(
 # NUNCA carrega linha de outra Contratante nem fora da allowlist de Unidades. As colunas
 # gestor-only (Parceiro) só saem na visão do gestor — mesma máscara D5' da serialização JSON.
 
+# Cabeçalho roxo (modelo da planilha-mestre): fundo roxo, texto branco em negrito, centralizado.
+# Reutilizado pelos dois exports (Solicitações e lote de Vencimentos).
+_HDR_FILL = PatternFill("solid", fgColor="6C4F9E")
+_HDR_FONT = Font(bold=True, color="FFFFFF")
+_HDR_ALIGN = Alignment(horizontal="center", vertical="center")
+
+
+def _estiliza_cabecalho(ws) -> None:
+    """Aplica o estilo roxo na 1ª linha (cabeçalho) da worksheet."""
+    for cell in ws[1]:
+        cell.fill = _HDR_FILL
+        cell.font = _HDR_FONT
+        cell.alignment = _HDR_ALIGN
+
 # Rótulos de status EXIBIDOS na UI (a_pagar→"A Vencer", atrasado→"Vencido") — o arquivo
 # espelha o que o usuário vê (frontend/src/lib/format.ts), não a chave interna.
 _STATUS_EXIBICAO = {"pago": "Pago", "a_pagar": "A Vencer", "atrasado": "Vencido"}
@@ -175,7 +190,7 @@ def _valor_celula(v: object, tipo: str) -> object:
     """Converte o valor de domínio p/ o que o openpyxl grava nativo (número/data/texto)."""
     if v is None:
         return None
-    if tipo in ("money", "percent"):
+    if tipo in ("money", "brl", "percent"):
         return float(v)  # Decimal -> float p/ o Excel tratar como número
     return v
 
@@ -198,8 +213,7 @@ def exporta_solicitacoes_xlsx(
     ws = wb.active
     ws.title = "Solicitações"
     ws.append([_EXPORT_COLS[c][0] for c in cols])
-    for cell in ws[1]:
-        cell.font = Font(bold=True)
+    _estiliza_cabecalho(ws)
     for s in ordenadas:
         ws.append([_valor_celula(_EXPORT_COLS[c][1](s), _EXPORT_COLS[c][2]) for c in cols])
 
@@ -212,6 +226,75 @@ def exporta_solicitacoes_xlsx(
                 cell.number_format = fmt
         ws.column_dimensions[letra].width = 18
     ws.freeze_panes = "A2"  # trava o cabeçalho ao rolar
+
+    buf = BytesIO()
+    wb.save(buf)
+    return buf.getvalue()
+
+
+# --- Exportação XLSX por lote (aba Vencimentos) ------------------------------------------
+# Botão "Exportar" em cada barra de unidade/lote da aba Vencimentos. Layout = modelo da
+# planilha-mestre do parceiro (mesmas colunas/nomes/estilo do anexo), SEM "Desconto (-IOF)";
+# o código é o gerado pelo portal (feature 009), não o bruto do sheet. Escopado R-001 como
+# toda leitura: passa por `filtra_por_escopo`, então nunca carrega linha de outra Contratante
+# nem fora da allowlist de Unidades. Endpoint novo de dados → entra na varredura de isolamento.
+
+# Colunas do arquivo: (cabeçalho, getter, tipo). A ordem aqui é a ordem no arquivo.
+_LOTE_COLS: list[tuple[str, Callable[[Solicitacao], object], str]] = [
+    ("Código", lambda s: s.codigo, "text"),
+    ("Cliente", lambda s: s.cliente, "text"),
+    ("Originação", lambda s: s.valor, "brl"),
+    ("Recebido Cliente", lambda s: s.recebido_cliente, "brl"),
+    ("IOF", lambda s: s.iof, "brl"),
+    ("Taxa ao Mês", lambda s: s.taxa_juros_mes, "percent"),
+    ("Data Pedido", lambda s: s.data_pedido, "date"),
+    ("Prazo", lambda s: s.prazo_dias, "int"),
+    ("Vencimento", lambda s: s.data_vencimento, "date"),
+    ("Unidade Referência", lambda s: s.unidade, "text"),
+    ("Rebate", lambda s: s.cashback, "brl"),
+]
+_LOTE_FMT = {"brl": '"R$" #,##0.00', "date": "DD/MM/YYYY", "percent": '0.00"%"', "int": "0"}
+
+
+def exporta_lote_xlsx(
+    dataset: Dataset,
+    user: AppUser,
+    unidade: str,
+    data_vencimento: date | None,
+    contratante: str | None = None,
+) -> bytes:
+    """XLSX de UM lote (unidade + data de vencimento) no modelo da planilha-mestre.
+
+    Escopo R-001 primeiro: só as solicitações do escopo do usuário. Filtra pela `unidade`,
+    e — quando informado — pela `data_vencimento` (lote) e `contratante` (o gestor pode ter a
+    mesma unidade em Contratantes distintas). Sem `data_vencimento`, exporta a unidade inteira.
+    """
+    itens = filtra_por_escopo(dataset.validas, user)
+    itens = [
+        s
+        for s in itens
+        if s.unidade == unidade
+        and (data_vencimento is None or s.data_vencimento == data_vencimento)
+        and (contratante is None or s.contratante == contratante)
+    ]
+    itens.sort(key=lambda s: s.codigo)
+
+    wb = Workbook()
+    ws = wb.active
+    ws.title = "Vencimentos"
+    ws.append([c[0] for c in _LOTE_COLS])
+    _estiliza_cabecalho(ws)
+    for s in itens:
+        ws.append([_valor_celula(getter(s), tipo) for _, getter, tipo in _LOTE_COLS])
+
+    for i, (_, _, tipo) in enumerate(_LOTE_COLS, start=1):
+        letra = get_column_letter(i)
+        fmt = _LOTE_FMT.get(tipo)
+        if fmt:
+            for cell in ws[letra][1:]:
+                cell.number_format = fmt
+        ws.column_dimensions[letra].width = 20
+    ws.freeze_panes = "A2"
 
     buf = BytesIO()
     wb.save(buf)

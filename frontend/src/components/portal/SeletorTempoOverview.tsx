@@ -1,9 +1,10 @@
 "use client";
 
-// Seletor de recorte temporal da Visão Geral (RF-019): toggle "ano inteiro" (padrão) vs
-// "por mês" (meses do ano selecionado). Alternativamente, um PERÍODO de datas de originação
-// (calendário de 2 meses, com confirmação): quando ativo, SUBSTITUI o recorte ano/meses —
-// a visão passa a mostrar apenas as solicitações originadas dentro do intervalo.
+// Seletor de recorte temporal da Visão Geral (RF-019): meses do ano sempre visíveis, todos
+// selecionados por padrão (= ano inteiro). Desmarcar qualquer mês vira recorte "por mês"
+// (subconjunto). Alternativamente, um PERÍODO de datas de originação (calendário de 2 meses,
+// com confirmação): quando ativo, SUBSTITUI o recorte ano/meses — a visão passa a mostrar
+// apenas as solicitações originadas dentro do intervalo.
 
 import { X } from "lucide-react";
 
@@ -17,9 +18,6 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
-import { Checkbox } from "@/components/ui/checkbox";
-import { Field } from "@/components/ui/field";
-import { Label } from "@/components/ui/label";
 import { cn } from "@/lib/utils";
 
 const MESES = [
@@ -33,11 +31,9 @@ interface Props {
   papel: "parceiro" | "gestor"; // período de originação só para gestor (parceiro não vê)
   ano: number;
   anosDisponiveis: number[];
-  porMes: boolean;
-  meses: number[]; // meses selecionados (1-12) quando porMes
+  meses: number[]; // meses selecionados (1-12); 12 selecionados = ano inteiro
   intervalo: Intervalo; // período de originação (ISO); de="" = sem período
   onAno: (ano: number) => void;
-  onPorMes: (porMes: boolean) => void;
   onMeses: (meses: number[]) => void;
   onIntervalo: (intervalo: Intervalo) => void;
 }
@@ -46,11 +42,9 @@ export function SeletorTempoOverview({
   papel,
   ano,
   anosDisponiveis,
-  porMes,
   meses,
   intervalo,
   onAno,
-  onPorMes,
   onMeses,
   onIntervalo,
 }: Props) {
@@ -61,7 +55,9 @@ export function SeletorTempoOverview({
   const periodoAtivo = mostraPeriodo && intervalo.de !== ""; // período substitui o recorte ano/meses
 
   function alternaMes(m: number) {
-    onMeses(meses.includes(m) ? meses.filter((x) => x !== m) : [...meses, m].sort((a, b) => a - b));
+    const jaTem = meses.includes(m);
+    if (jaTem && meses.length === 1) return; // nunca deixa vazio — mínimo 1 mês
+    onMeses(jaTem ? meses.filter((x) => x !== m) : [...meses, m].sort((a, b) => a - b));
   }
 
   return (
@@ -83,21 +79,11 @@ export function SeletorTempoOverview({
             </SelectContent>
           </Select>
 
-          <Field orientation="horizontal" className="w-auto" data-disabled={periodoAtivo || undefined}>
-            <Checkbox
-              id="recorte-por-mes"
-              checked={porMes}
-              disabled={periodoAtivo}
-              onCheckedChange={(v) => onPorMes(v === true)}
-              aria-label="Recorte por mês"
-            />
-            <Label
-              htmlFor="recorte-por-mes"
-              className={cn("cursor-pointer text-sm font-normal", !porMes && "text-muted-foreground")}
-            >
-              {porMes ? "Por mês" : "Ano inteiro"}
-            </Label>
-          </Field>
+          <span className="text-sm text-muted-foreground">
+            {todosSelecionados
+              ? "Ano inteiro"
+              : `Por mês · ${meses.length} ${meses.length === 1 ? "mês" : "meses"}`}
+          </span>
         </div>
 
         {/* Período de originação (calendário de 2 meses, com confirmação). Substitui ano/meses.
@@ -127,13 +113,13 @@ export function SeletorTempoOverview({
           </div>
         ) : null}
 
-        {porMes && !periodoAtivo ? (
+        {!periodoAtivo && !todosSelecionados ? (
           <button
             type="button"
-            onClick={() => onMeses(todosSelecionados ? [] : TODOS_OS_MESES)}
+            onClick={() => onMeses(TODOS_OS_MESES)}
             className="text-xs font-medium text-primary hover:underline"
           >
-            {todosSelecionados ? "Limpar" : "Selecionar todos"}
+            Selecionar todos
           </button>
         ) : null}
       </div>
@@ -144,7 +130,7 @@ export function SeletorTempoOverview({
         </p>
       ) : null}
 
-      {porMes && !periodoAtivo ? (
+      {!periodoAtivo ? (
         <div className="flex flex-wrap gap-1.5">
           {MESES.map((nome, i) => {
             const m = i + 1;

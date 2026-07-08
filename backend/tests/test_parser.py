@@ -5,10 +5,13 @@ from decimal import Decimal
 
 from app.sheets.parser import (
     formatar_codigo,
+    normaliza_cpf,
+    normaliza_telefone,
     parse_base,
     parse_bool,
     parse_date_flexible,
     parse_money,
+    parse_percent,
     parse_solicitacoes,
     sanitiza_trigrama,
     trigrama_default,
@@ -67,6 +70,37 @@ def test_date_iso_and_br():
     assert parse_date_flexible("14/01/2026") == date(2026, 1, 14)
     assert parse_date_flexible("") is None
     assert parse_date_flexible("texto") is None
+
+
+def test_percent_fracao_do_unformatted_vira_escala_humana():
+    # UNFORMATTED_VALUE: célula % volta como fração e sem símbolo (6% → 0.06).
+    assert parse_percent("0.06") == Decimal("6.00")
+    assert parse_percent("0.082") == Decimal("8.200")
+    assert parse_percent("0") == Decimal("0")
+
+
+def test_percent_ja_humano_ou_formatado_nao_escala():
+    assert parse_percent("6.00%") == Decimal("6.00")  # string formatada (tem %)
+    assert parse_percent("6") == Decimal("6")  # número já em escala humana
+    assert parse_percent("") is None
+    assert parse_percent(None) is None
+
+
+def test_telefone_remove_duplicacao_da_celula():
+    # A base do CRM concatena o mesmo número repetido — pega só a 1ª ocorrência.
+    assert normaliza_telefone("(62) 99196-0546(62) 99196-0546991960546") == "(62) 99196-0546"
+    assert normaliza_telefone("(11) 98888-7777") == "(11) 98888-7777"
+    assert normaliza_telefone("sem numero") == "sem numero"  # sem padrão → devolve cru
+    assert normaliza_telefone(None) is None
+
+
+def test_cpf_reconstroi_zero_a_esquerda_perdido_pelo_sheets():
+    assert normaliza_cpf("4810942104") == "04810942104"  # 10 díg → zero à esquerda
+    assert normaliza_cpf("123456789") == "00123456789"  # 9 díg → 2 zeros
+    assert normaliza_cpf("04810942104") == "04810942104"  # já com 11 díg
+    assert normaliza_cpf("048.109.421-04") == "048.109.421-04"  # já mascarado → intacto
+    assert normaliza_cpf("333") == "333"  # curto demais p/ CPF → intacto
+    assert normaliza_cpf(None) is None
 
 
 def test_bool_quitado():

@@ -36,7 +36,6 @@ function DashboardView() {
   const papel = me?.role === "gestor" ? "gestor" : "parceiro";
   const { queryString } = useFiltros("overview");
   const [ano, setAno] = useState(() => new Date().getFullYear());
-  const [porMes, setPorMes] = useState(false);
   const [meses, setMeses] = useState<number[]>(TODOS_OS_MESES);
   const [intervalo, setIntervalo] = useState<Intervalo>(INTERVALO_VAZIO); // período de originação; substitui ano/meses
   const [data, setData] = useState<Overview | null>(null);
@@ -44,6 +43,8 @@ function DashboardView() {
   const [erro, setErro] = useState<string | null>(null);
 
   const mesesKey = meses.join(",");
+  // Recorte por mês = subconjunto de meses (não todos os 12). 12 selecionados = ano inteiro.
+  const porMes = meses.length > 0 && meses.length < 12;
   const periodoAtivo = intervalo.de !== "";
 
   const carregar = useCallback(() => {
@@ -56,7 +57,7 @@ function DashboardView() {
       params.set("data_ate", intervalo.ate || intervalo.de);
     } else {
       params.set("ano", String(ano));
-      if (porMes && mesesKey) params.set("meses", mesesKey);
+      if (porMes) params.set("meses", mesesKey);
     }
     apiGet<Overview>(`/api/overview?${params}`)
       .then(setData)
@@ -75,11 +76,6 @@ function DashboardView() {
     }
   }, [data, ano]);
 
-  function alternaPorMes(ativo: boolean) {
-    setPorMes(ativo);
-    if (ativo && meses.length === 0) setMeses(TODOS_OS_MESES);
-  }
-
   const primeiroNome = me?.nome_exibicao?.trim().split(/\s+/)[0] ?? "";
 
   return (
@@ -94,16 +90,14 @@ function DashboardView() {
         </div>
       </div>
 
-      {/* Recorte temporal (RF-019): ano inteiro vs. por mês */}
+      {/* Recorte temporal (RF-019): meses sempre visíveis; todos = ano inteiro, subconjunto = por mês */}
       <SeletorTempoOverview
         papel={papel}
         ano={ano}
         anosDisponiveis={data?.anos_disponiveis ?? []}
-        porMes={porMes}
         meses={meses}
         intervalo={intervalo}
         onAno={setAno}
-        onPorMes={alternaPorMes}
         onMeses={setMeses}
         onIntervalo={setIntervalo}
       />

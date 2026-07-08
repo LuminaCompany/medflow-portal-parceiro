@@ -25,7 +25,7 @@ export function DetalheSolicitacao({ detalhe }: { detalhe: SolicitacaoDetalhe })
         <Linha k="Originação" v={formatMoeda(s.valor)} />
         <Linha k="Recebido pelo cliente" v={formatMoeda(s.recebido_cliente)} />
         <Linha k="IOF" v={formatMoeda(s.iof)} />
-        <Linha k="Juros e descontos" v={formatMoeda(s.juros_descontos)} />
+        <Linha k="Desconto (-IOF)" v={formatMoeda(s.juros_descontos)} />
         <Linha k="Taxa de juros (mês)" v={formatPercent(s.taxa_juros_mes)} />
         {/* Margens da MedFlow: só chegam na visão do gestor (backend faz strip p/ parceiro). */}
         {s.lucro_operacional != null && (
