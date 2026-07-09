@@ -173,7 +173,14 @@ _EXPORT_COLS: dict[str, tuple[str, Callable[[Solicitacao], object], str]] = {
     "cashback": ("Rebate", lambda s: s.cashback, "money"),
 }
 _EXPORT_GESTOR_ONLY = frozenset({"contratante"})
-_EXPORT_FMT = {"money": "#,##0.00", "date": "DD/MM/YYYY", "percent": '0.00"%"', "int": "0"}
+
+# Formato de data dos XLSX. As LETRAS de um código de formato são lidas no idioma do programa
+# que abre o arquivo (alemão usa T/M/J, francês J/M/A...), então "DD/MM/YYYY" saía como o texto
+# literal "DD/06/YYYY" fora de um Excel em inglês. O prefixo LCID `[$-416]` (pt-BR) fixa a
+# leitura — é o que o próprio Excel grava numa data brasileira. Não usar código sem o prefixo.
+_FMT_DATA = "[$-416]dd/mm/yyyy"
+
+_EXPORT_FMT = {"money": "#,##0.00", "date": _FMT_DATA, "percent": '0.00"%"', "int": "0"}
 
 
 def _colunas_export(colunas: list[str] | None, gestor: bool) -> list[str]:
@@ -253,7 +260,7 @@ _LOTE_COLS: list[tuple[str, Callable[[Solicitacao], object], str]] = [
     ("Unidade Referência", lambda s: s.unidade, "text"),
     ("Rebate", lambda s: s.cashback, "brl"),
 ]
-_LOTE_FMT = {"brl": '"R$" #,##0.00', "date": "DD/MM/YYYY", "percent": '0.00"%"', "int": "0"}
+_LOTE_FMT = {"brl": '"R$" #,##0.00', "date": _FMT_DATA, "percent": '0.00"%"', "int": "0"}
 
 
 def exporta_lote_xlsx(

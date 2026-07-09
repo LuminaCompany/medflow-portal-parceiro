@@ -232,6 +232,17 @@ def test_export_escopado_nao_vaza_outro_parceiro():
     assert "Dr. Carlos" not in valores  # médico do AH, fora do escopo
 
 
+def test_export_data_com_valor_nativo_e_formato_travado_em_pt_br():
+    # As datas saem como data de verdade (não texto) e com o LCID pt-BR: sem o prefixo, um
+    # Excel em outro idioma imprime o código literal ("DD/06/YYYY") no lugar da data.
+    from datetime import datetime
+
+    ws = _exporta(_user("parceiro", BESA), colunas=["data_pedido"])
+    celula = ws["A2"]
+    assert isinstance(celula.value, (date, datetime))
+    assert celula.number_format == "[$-416]dd/mm/yyyy"
+
+
 def test_export_respeita_filtro():
     filtros = parse_filtros({"status": "atrasado"}, ABA_SOLICITACOES, "parceiro")
     ws = _exporta(_user("parceiro", BESA), filtros=filtros)
