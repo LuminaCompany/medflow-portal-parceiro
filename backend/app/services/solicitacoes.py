@@ -21,9 +21,19 @@ from app.domain.scope import filtra_por_escopo, is_gestor
 from app.domain.status import casa_busca_status
 from app.services.cores import cor_para
 from app.services.dataset import Dataset
+from app.services.relatorio_pdf import relatorio_fechamento_pdf
 from app.services.serialize import money_str, serializa_medico, serializa_solicitacao
 
 LIMIT_PADRAO = 20
+
+# Formatos de exportação (feature 010). XLSX = planilha (colunas escolhíveis); PDF =
+# Relatório de Fechamento no modelo oficial (layout fixo). Os dois saem escopados (R-001).
+FORMATO_XLSX = "xlsx"
+FORMATO_PDF = "pdf"
+MEDIA_POR_FORMATO = {
+    FORMATO_XLSX: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+    FORMATO_PDF: "application/pdf",
+}
 
 # Ordenação: coluna + direção. Padrão = data do pedido, mais recente primeiro (feature 008;
 # antes a ordem era sempre por médico). O agrupamento visual por médico (RF-009) só vale
@@ -263,18 +273,18 @@ _LOTE_COLS: list[tuple[str, Callable[[Solicitacao], object], str]] = [
 _LOTE_FMT = {"brl": '"R$" #,##0.00', "date": _FMT_DATA, "percent": '0.00"%"', "int": "0"}
 
 
-def exporta_lote_xlsx(
+def _itens_do_lote(
     dataset: Dataset,
     user: AppUser,
     unidade: str,
     data_vencimento: date | None,
     contratante: str | None = None,
-) -> bytes:
-    """XLSX de UM lote (unidade + data de vencimento) no modelo da planilha-mestre.
+) -> list[Solicitacao]:
+    """Solicitações de UM lote (unidade + data de vencimento), escopadas.
 
     Escopo R-001 primeiro: só as solicitações do escopo do usuário. Filtra pela `unidade`,
     e — quando informado — pela `data_vencimento` (lote) e `contratante` (o gestor pode ter a
-    mesma unidade em Contratantes distintas). Sem `data_vencimento`, exporta a unidade inteira.
+    mesma unidade em Contratantes distintas). Sem `data_vencimento`, pega a unidade inteira.
     """
     itens = filtra_por_escopo(dataset.validas, user)
     itens = [
@@ -285,6 +295,18 @@ def exporta_lote_xlsx(
         and (contratante is None or s.contratante == contratante)
     ]
     itens.sort(key=lambda s: s.codigo)
+    return itens
+
+
+def exporta_lote_xlsx(
+    dataset: Dataset,
+    user: AppUser,
+    unidade: str,
+    data_vencimento: date | None,
+    contratante: str | None = None,
+) -> bytes:
+    """XLSX de UM lote (unidade + data de vencimento) no modelo da planilha-mestre."""
+    itens = _itens_do_lote(dataset, user, unidade, data_vencimento, contratante)
 
     wb = Workbook()
     ws = wb.active
@@ -306,6 +328,37 @@ def exporta_lote_xlsx(
     buf = BytesIO()
     wb.save(buf)
     return buf.getvalue()
+
+
+# --- Exportação PDF: Relatório de Fechamento (feature 010) -------------------------------
+# Mesma leitura escopada dos exports XLSX (R-001), outro formato de saída: o modelo oficial
+# da Medflow (papel timbrado + tabela por Unidade + resumo). O LAYOUT é fixo — as colunas
+# escolhidas no diálogo da aba Solicitações valem só para o XLSX (o modelo tem colunas
+# próprias). Endpoints novos de dados → entram na varredura de isolamento.
+
+
+def exporta_solicitacoes_pdf(
+    dataset: Dataset,
+    user: AppUser,
+    q: str | None = None,
+    filtros: list[FiltroAplicado] | None = None,
+) -> bytes:
+    """Relatório de Fechamento das solicitações escopadas/filtradas. Ignora `sort`/`dir`:
+    o relatório é agrupado por Unidade e ordenado por código dentro do grupo."""
+    return relatorio_fechamento_pdf(_aplica_escopo_e_filtros(dataset, user, q, filtros))
+
+
+def exporta_lote_pdf(
+    dataset: Dataset,
+    user: AppUser,
+    unidade: str,
+    data_vencimento: date | None,
+    contratante: str | None = None,
+) -> bytes:
+    """Relatório de Fechamento de UM lote (unidade + data de vencimento), escopado."""
+    return relatorio_fechamento_pdf(
+        _itens_do_lote(dataset, user, unidade, data_vencimento, contratante)
+    )
 
 
 def _resumo_medico(itens_escopo: list[Solicitacao], grupo_id: str | None, gestor: bool) -> dict:

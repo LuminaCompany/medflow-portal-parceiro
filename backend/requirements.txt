@@ -7,6 +7,7 @@ google-api-python-client==2.154.0
 google-auth==2.36.0
 supabase==2.10.0
 openpyxl==3.1.5  # exportação XLSX da aba Solicitações (feature 008)
+reportlab==4.2.5  # exportação PDF (Relatório de Fechamento, feature 010)
 PyJWT==2.10.1
 python-dateutil==2.9.0.post0
 tzdata==2024.2  # base de fusos p/ zoneinfo (necessária no Windows dev; América/Sao_Paulo)
@@ -14,4 +15,5 @@ tzdata==2024.2  # base de fusos p/ zoneinfo (necessária no Windows dev; Améric
 # dev/test
 pytest==8.3.4
 httpx==0.27.2  # teto <0.28 exigido pelo supabase 2.10
+pymupdf==1.28.0  # lê o PDF gerado na varredura de isolamento (tests/test_e2e_isolamento.py)
 ruff==0.8.3

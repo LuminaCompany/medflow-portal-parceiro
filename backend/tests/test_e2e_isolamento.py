@@ -145,6 +145,51 @@ def test_export_lote_de_outra_unidade_vem_vazio():
     assert "Dr. 99" not in valores
 
 
+# --- Export PDF (feature 010): mesma varredura do XLSX -----------------------------------
+# O PDF é escopado como toda leitura. O binário não serve p/ busca por substring (fluxos
+# comprimidos), então os testes EXTRAEM o texto das páginas — é o que o parceiro realmente vê.
+
+
+def _texto_do_pdf(conteudo: bytes) -> str:
+    import fitz  # PyMuPDF: só em teste, p/ ler o PDF gerado
+
+    with fitz.open(stream=conteudo, filetype="pdf") as doc:
+        return "".join(p.get_text() for p in doc)
+
+
+@pytest.mark.parametrize(
+    "url",
+    [
+        "/api/solicitacoes/export?formato=pdf",
+        # Forçar o contratante/unidade de AH não amplia o escopo do parceiro BESA.
+        "/api/solicitacoes/export?formato=pdf&contratante=A.H.%20GEST%C3%83O%20M%C3%89DICA",
+        "/api/vencimentos/export?formato=pdf&unidade=UPA%20BESA&data_vencimento=2026-07-01",
+        "/api/vencimentos/export?formato=pdf&unidade=Hosp%20AH&data_vencimento=2026-07-01",
+    ],
+)
+def test_export_pdf_nunca_vaza_marca_do_outro(url):
+    resp = client.get(url)
+    assert resp.status_code == 200, f"{url} → {resp.status_code}"
+    assert resp.headers["content-type"].startswith("application/pdf")
+    texto = _texto_do_pdf(resp.content)
+    for marca in MARCAS_DE_AH + ("Dr. 99", "Hosp AH"):
+        assert marca not in texto, f"VAZAMENTO no export PDF ({url}): achou {marca!r}"
+
+
+def test_export_pdf_traz_o_proprio_parceiro():
+    # Contraprova das varreduras acima: o PDF do parceiro BESA de fato traz a linha dele
+    # (senão os testes de vazamento passariam com um arquivo vazio).
+    resp = client.get("/api/solicitacoes/export?formato=pdf")
+    assert resp.status_code == 200
+    assert "Dr. 1" in _texto_do_pdf(resp.content)
+
+
+def test_export_formato_invalido_400():
+    resp = client.get("/api/solicitacoes/export?formato=exe")
+    assert resp.status_code == 400
+    assert resp.json()["error"]["code"] == "bad_request"
+
+
 def test_detalhe_de_outro_parceiro_404():
     resp = client.get("/api/solicitacoes/99")
     assert resp.status_code == 404

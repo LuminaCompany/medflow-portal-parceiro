@@ -122,3 +122,24 @@ posicional intacto), só o valor é ignorado; código de origem ausente não rep
   `services/partners.py`; `EditarConfigIn.trigrama` + invalidação do dataset em `routers/partners.py`
 - Frontend: `Parceiro.trigrama` em `lib/types.ts`; campo no "Editar parceiro" e badge do prefixo em
   `parceiros/page.tsx`; `getKey` qualificado por contratante na lista do gestor (`solicitacoes/page.tsx`)
+
+## Feature: Exportar em PDF — Relatório de Fechamento (010)
+Os dois exports (lote em Vencimentos + aba Solicitações) ganham `?formato=xlsx|pdf` (default
+`xlsx` = comportamento antigo). O PDF replica o modelo oficial (`exportação modelo lumina.pdf`):
+A4 paisagem, papel timbrado (logo/título/rodapé do Matheus) desenhado como **bitmap de página
+inteira** extraído do próprio modelo (`app/assets/relatorio_fundo.png`) — cabeçalho e rodapé saem
+pixel a pixel iguais; só a tabela é composta. Uma página (ou mais) **por Unidade**, cada grupo
+fechado por uma faixa SUBTOTAL, e uma **página de resumo** no fim (Unidade × Subtotal × Rebate +
+VALOR TOTAL GERAL). LAYOUT FIXO: 11 colunas (as do XLSX de lote; o modelo tem ainda
+"Desconto (-IOF)", removida por decisão de produto) — a escolha de colunas do diálogo vale **só
+p/ XLS**, e `sort`/`dir` não se aplicam (o relatório é agrupado). Export é endpoint de dados →
+entra na varredura de isolamento (`test_e2e_isolamento.py` extrai o texto do PDF gerado).
+Geometria medida do modelo e replicada: margens 14/32/42mm, roxo `#7030A0`, zebra `#F5F5F5`,
+corpo Helvetica 8/`#505050`, faixas BoldOblique 9. Larguras de coluna são FIXAS (o modelo usa
+auto-width do reportlab, que muda de página p/ página — aqui não).
+- Dep: `reportlab` em `backend/requirements.txt` + `pymupdf` (dev, lê o PDF no teste) — `pip install -r`
+- Backend: `app/services/relatorio_pdf.py` (`relatorio_fechamento_pdf`); `exporta_solicitacoes_pdf`/
+  `exporta_lote_pdf` + `_itens_do_lote` (extraído do XLSX de lote) e `MEDIA_POR_FORMATO` em
+  `services/solicitacoes.py`; `formato` nos routers `solicitacoes.py`/`vencimentos.py`
+- Frontend: `ExportarLote.tsx` (clique no ⬇ desliza XLS|PDF à direita, `grid-cols-[0fr]→[1fr]`);
+  toggle de formato + `ToggleFormato` em `ExportarSolicitacoes.tsx`

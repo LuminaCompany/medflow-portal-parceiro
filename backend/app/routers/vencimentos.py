@@ -14,14 +14,18 @@ from app.domain.filtros.engine import parse as parse_filtros
 from app.domain.filtros.registry import ABA_VENCIMENTOS
 from app.domain.scope import is_gestor
 from app.services.dataset import get_dataset_service
-from app.services.solicitacoes import exporta_lote_xlsx
+from app.services.solicitacoes import (
+    FORMATO_PDF,
+    FORMATO_XLSX,
+    MEDIA_POR_FORMATO,
+    exporta_lote_pdf,
+    exporta_lote_xlsx,
+)
 from app.services.vencimentos import (
     PROXIMOS_DEFAULT,
     vencimentos_gestor,
     vencimentos_parceiro,
 )
-
-_XLSX_MEDIA = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
 
 router = APIRouter(prefix="/api", tags=["vencimentos"])
 
@@ -44,12 +48,20 @@ def get_vencimentos(
 def export_vencimentos(
     user: CurrentUser,
     unidade: str = Query(..., description="Unidade do lote a exportar"),
-    data_vencimento: str | None = Query(None, description="Vencimento do lote (ISO). Ausente = unidade inteira"),
+    data_vencimento: str | None = Query(
+        None, description="Vencimento do lote (ISO). Ausente = unidade inteira"
+    ),
     contratante: str | None = Query(None, description="Desambigua a unidade (gestor)"),
+    formato: str = Query(FORMATO_XLSX, description="xlsx (planilha) | pdf (Rel. Fechamento)"),
 ) -> Response:
-    """Exporta o lote (unidade + vencimento) da aba Vencimentos em XLSX, no modelo da
-    planilha-mestre. Escopo R-001 no serviço — o arquivo nunca carrega dado de outra
-    Contratante nem fora da allowlist de Unidades."""
+    """Exporta o lote (unidade + vencimento) da aba Vencimentos em XLSX (modelo da
+    planilha-mestre) ou PDF (Relatório de Fechamento). Escopo R-001 no serviço — o arquivo
+    nunca carrega dado de outra Contratante nem fora da allowlist de Unidades."""
+    if formato not in MEDIA_POR_FORMATO:
+        raise HTTPException(
+            status_code=http_status.HTTP_400_BAD_REQUEST,
+            detail={"code": "bad_request", "message": "formato inválido (use xlsx ou pdf)."},
+        )
     venc: date | None = None
     if data_vencimento:
         try:
@@ -60,11 +72,12 @@ def export_vencimentos(
                 detail={"code": "bad_request", "message": "data_vencimento inválida (use ISO)."},
             ) from e
     dataset = get_dataset_service().get()
-    conteudo = exporta_lote_xlsx(dataset, user, unidade, venc, contratante)
+    exporta = exporta_lote_pdf if formato == FORMATO_PDF else exporta_lote_xlsx
+    conteudo = exporta(dataset, user, unidade, venc, contratante)
     sufixo = venc.isoformat() if venc else date.today().isoformat()
-    nome = f"vencimentos_{sufixo}.xlsx"
+    nome = f"vencimentos_{sufixo}.{formato}"
     return Response(
         content=conteudo,
-        media_type=_XLSX_MEDIA,
+        media_type=MEDIA_POR_FORMATO[formato],
         headers={"Content-Disposition": f'attachment; filename="{nome}"'},
     )

@@ -20,14 +20,16 @@ from app.services.dataset import get_dataset_service
 from app.services.partners import PartnersService
 from app.services.solicitacoes import (
     DIR_PADRAO,
+    FORMATO_PDF,
+    FORMATO_XLSX,
     LIMIT_PADRAO,
+    MEDIA_POR_FORMATO,
     SORT_PADRAO,
     detalhe_solicitacao,
+    exporta_solicitacoes_pdf,
     exporta_solicitacoes_xlsx,
     listar_solicitacoes,
 )
-
-_XLSX_MEDIA = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
 
 router = APIRouter(prefix="/api", tags=["solicitacoes"])
 
@@ -69,19 +71,29 @@ def export_solicitacoes(
     cols: str | None = None,
     sort: str = SORT_PADRAO,
     dir: str = DIR_PADRAO,
+    formato: str = Query(FORMATO_XLSX, description="xlsx (planilha) | pdf (Rel. Fechamento)"),
 ) -> Response:
-    """Exporta as solicitações escopadas/filtradas em XLSX. Escopo R-001 no serviço — o
-    arquivo nunca carrega dado de outra Contratante. `cols` = ids separados por vírgula."""
+    """Exporta as solicitações escopadas/filtradas em XLSX ou PDF. Escopo R-001 no serviço —
+    o arquivo nunca carrega dado de outra Contratante. `cols` = ids separados por vírgula
+    (só valem no XLSX: o PDF segue o layout fixo do Relatório de Fechamento)."""
+    if formato not in MEDIA_POR_FORMATO:
+        raise HTTPException(
+            status_code=http_status.HTTP_400_BAD_REQUEST,
+            detail={"code": "bad_request", "message": "formato inválido (use xlsx ou pdf)."},
+        )
     filtros = parse_filtros(request.query_params, ABA_SOLICITACOES, papel_de(user))
-    colunas = [c.strip() for c in cols.split(",") if c.strip()] if cols else None
     dataset = get_dataset_service().get()
-    conteudo = exporta_solicitacoes_xlsx(
-        dataset, user, q=q, filtros=filtros, colunas=colunas, sort=sort, direcao=dir
-    )
-    nome = f"solicitacoes_{date.today().isoformat()}.xlsx"
+    if formato == FORMATO_PDF:
+        conteudo = exporta_solicitacoes_pdf(dataset, user, q=q, filtros=filtros)
+    else:
+        colunas = [c.strip() for c in cols.split(",") if c.strip()] if cols else None
+        conteudo = exporta_solicitacoes_xlsx(
+            dataset, user, q=q, filtros=filtros, colunas=colunas, sort=sort, direcao=dir
+        )
+    nome = f"solicitacoes_{date.today().isoformat()}.{formato}"
     return Response(
         content=conteudo,
-        media_type=_XLSX_MEDIA,
+        media_type=MEDIA_POR_FORMATO[formato],
         headers={"Content-Disposition": f'attachment; filename="{nome}"'},
     )
 
