@@ -24,6 +24,7 @@ interface Grupo {
   data: string;
   itens: Solicitacao[];
   total: number;
+  rebate: number; // Σ cashback do lote — some do modal "Pagar" quando o lote é quitado
   dias: number; // > 0 = dias em atraso; < 0 = dias até vencer
 }
 
@@ -51,6 +52,7 @@ function agrupar(itens: Solicitacao[]): Grupo[] {
       data,
       itens: list,
       total: list.reduce((a, s) => a + Number(s.valor || 0), 0),
+      rebate: list.reduce((a, s) => a + Number(s.cashback || 0), 0),
       dias,
     };
   });
@@ -119,9 +121,19 @@ export function SecaoVencimentos({
                   {g.itens.length} solicitaç{g.itens.length === 1 ? "ão" : "ões"}
                 </span>
               </div>
-              <span className="ml-auto pr-2 font-display text-sm font-bold tabular-nums">
-                {formatMoeda(String(g.total))}
-              </span>
+              {/* Σ rebate do lote: pendente, o parceiro só vê esse total no modal "Pagar"; pago,
+                  o lote perde o botão e o total sumia (sobravam os valores linha a linha). */}
+              <div className="ml-auto flex items-center gap-2 pr-2 sm:gap-3">
+                {g.rebate > 0 ? (
+                  <span className="inline-flex items-center gap-1 rounded-full bg-success/12 px-2.5 py-1 text-xs font-semibold whitespace-nowrap text-success-ink">
+                    Rebate
+                    <span className="tabular-nums">{formatMoeda(String(g.rebate))}</span>
+                  </span>
+                ) : null}
+                <span className="font-display text-sm font-bold tabular-nums">
+                  {formatMoeda(String(g.total))}
+                </span>
+              </div>
             </div>
           </AccordionTrigger>
           <AccordionContent className="px-2 pb-2">

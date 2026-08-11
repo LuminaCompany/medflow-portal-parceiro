@@ -1,6 +1,6 @@
 "use client";
 
-import { Area, AreaChart, CartesianGrid, XAxis, YAxis } from "recharts";
+import { Bar, BarChart, CartesianGrid, XAxis, YAxis } from "recharts";
 
 import {
   ChartContainer,
@@ -16,18 +16,18 @@ const config = {
 
 const compacto = new Intl.NumberFormat("pt-BR", { notation: "compact", maximumFractionDigits: 1 });
 
-// Série mensal do rebate (Σ cashback) — gráfico de área (linha) via shadcn Chart, em verde
-// (var(--chart-4)). Mesmo eixo Y compacto do gráfico de originação. Cor vinda dos tokens.
+// Série mensal do rebate (Σ cashback) — mesmo gráfico de barras da originação (GraficoMensal),
+// em verde (var(--chart-4)). Eixo Y compacto, tooltip em BRL. Cor vinda dos tokens.
 export function GraficoRebate({ serie }: { serie: { mes: string; rebate: string }[] }) {
   const data = serie.map((p) => ({ mes: formatMes(p.mes), rebate: Number(p.rebate) }));
 
   return (
     <ChartContainer config={config} className="aspect-auto h-[300px] w-full">
-      <AreaChart data={data} margin={{ top: 8, right: 8, left: 4, bottom: 4 }}>
+      <BarChart data={data} margin={{ top: 8, right: 8, left: 4, bottom: 4 }}>
         <defs>
-          <linearGradient id="fill-rebate" x1="0" y1="0" x2="0" y2="1">
-            <stop offset="5%" stopColor="var(--chart-4)" stopOpacity={0.8} />
-            <stop offset="95%" stopColor="var(--chart-4)" stopOpacity={0.1} />
+          <linearGradient id="grad-rebate" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%" stopColor="var(--chart-4)" stopOpacity={1} />
+            <stop offset="100%" stopColor="var(--chart-4)" stopOpacity={0.5} />
           </linearGradient>
         </defs>
         <CartesianGrid vertical={false} strokeDasharray="3 3" />
@@ -46,7 +46,7 @@ export function GraficoRebate({ serie }: { serie: { mes: string; rebate: string 
           tickFormatter={(v: number) => compacto.format(v)}
         />
         <ChartTooltip
-          cursor={false}
+          cursor={{ fill: "var(--accent)", opacity: 0.5, radius: 6 }}
           content={
             <ChartTooltipContent
               formatter={(value) => (
@@ -60,14 +60,14 @@ export function GraficoRebate({ serie }: { serie: { mes: string; rebate: string 
             />
           }
         />
-        <Area
+        <Bar
           dataKey="rebate"
-          type="natural"
-          fill="url(#fill-rebate)"
-          stroke="var(--chart-4)"
-          strokeWidth={2}
+          radius={[6, 6, 0, 0]}
+          fill="url(#grad-rebate)"
+          maxBarSize={64}
+          activeBar={{ fillOpacity: 1, stroke: "var(--chart-4)", strokeWidth: 1 }}
         />
-      </AreaChart>
+      </BarChart>
     </ChartContainer>
   );
 }
