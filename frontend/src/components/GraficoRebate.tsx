@@ -1,6 +1,6 @@
 "use client";
 
-import { Bar, BarChart, CartesianGrid, XAxis, YAxis } from "recharts";
+import { Bar, BarChart, CartesianGrid, LabelList, XAxis, YAxis } from "recharts";
 
 import {
   ChartContainer,
@@ -9,6 +9,7 @@ import {
   type ChartConfig,
 } from "@/components/ui/chart";
 import { formatMes, formatMoeda } from "@/lib/format";
+import { formatCompacto } from "@/lib/formatCompacto";
 
 const config = {
   rebate: { label: "Rebate", color: "var(--chart-4)" },
@@ -23,7 +24,7 @@ export function GraficoRebate({ serie }: { serie: { mes: string; rebate: string 
 
   return (
     <ChartContainer config={config} className="aspect-auto h-[300px] w-full">
-      <BarChart data={data} margin={{ top: 8, right: 8, left: 4, bottom: 4 }}>
+      <BarChart data={data} margin={{ top: 22, right: 8, left: 4, bottom: 4 }}>
         <defs>
           <linearGradient id="grad-rebate" x1="0" y1="0" x2="0" y2="1">
             <stop offset="0%" stopColor="var(--chart-4)" stopOpacity={1} />
@@ -66,7 +67,17 @@ export function GraficoRebate({ serie }: { serie: { mes: string; rebate: string 
           fill="url(#grad-rebate)"
           maxBarSize={64}
           activeBar={{ fillOpacity: 1, stroke: "var(--chart-4)", strokeWidth: 1 }}
-        />
+        >
+          <LabelList
+            dataKey="rebate"
+            position="top"
+            offset={8}
+            fontSize={11}
+            fontWeight={600}
+            fill="var(--chart-4)"
+            formatter={(v) => formatCompacto(Number(v))}
+          />
+        </Bar>
       </BarChart>
     </ChartContainer>
   );
