@@ -8,7 +8,13 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { Empty, EmptyDescription, EmptyHeader, EmptyMedia, EmptyTitle } from "@/components/ui/empty";
+import {
+  Empty,
+  EmptyDescription,
+  EmptyHeader,
+  EmptyMedia,
+  EmptyTitle,
+} from "@/components/ui/empty";
 import { ChevronDown, ChevronUp, Inbox } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -39,7 +45,7 @@ interface GrupoMeta {
 // virem uma banda única — o tom muda entre uma e outra.
 function calcGrupos<T>(
   itens: T[],
-  groupBy?: (item: T) => string | null | undefined,
+  groupBy?: (item: T) => string | null | undefined
 ): (GrupoMeta | null)[] {
   if (!groupBy) return itens.map(() => null);
   const ids = itens.map((it) => groupBy(it) ?? null);
@@ -77,6 +83,9 @@ export function DataTable<T>({
   vazio,
   ordem,
   onOrdenar,
+  rowClassName,
+  rowClickable,
+  rowExpanded,
 }: {
   colunas: Coluna<T>[];
   itens: T[];
@@ -89,6 +98,12 @@ export function DataTable<T>({
   ordem?: OrdemTabela;
   /** Clique num cabeçalho ordenável — recebe a `sortKey` da coluna. */
   onOrdenar?: (col: string) => void;
+  /** Classe extra por linha (ex.: fundo das filhas de um grupo). */
+  rowClassName?: (item: T, index: number) => string | undefined;
+  /** Quais linhas respondem ao `onRowClick`. Sem isso, todas respondem (comportamento antigo). */
+  rowClickable?: (item: T) => boolean;
+  /** `aria-expanded` da linha (linha-mãe de um grupo expansível). */
+  rowExpanded?: (item: T) => boolean | undefined;
 }) {
   if (itens.length === 0) {
     return (
@@ -127,7 +142,7 @@ export function DataTable<T>({
                   className={cn(
                     "h-11 px-4 text-[11px] font-semibold tracking-wider text-muted-foreground uppercase",
                     alignClass(c.align),
-                    c.headClassName,
+                    c.headClassName
                   )}
                 >
                   {c.sortable && onOrdenar ? (
@@ -137,7 +152,7 @@ export function DataTable<T>({
                       className={cn(
                         "inline-flex items-center gap-1 uppercase transition-colors hover:text-foreground",
                         c.align === "right" && "flex-row-reverse",
-                        ativo && "text-foreground",
+                        ativo && "text-foreground"
                       )}
                     >
                       {c.header}
@@ -161,46 +176,49 @@ export function DataTable<T>({
           {itens.map((item, i) => {
             const accent = rowAccent?.(item);
             const g = grupos[i];
+            // Linha só é interativa se houver handler E ela for clicável (filhas de grupo não são).
+            const acionar =
+              onRowClick && (rowClickable?.(item) ?? true) ? () => onRowClick(item) : undefined;
             return (
               <TableRow
                 key={getKey ? getKey(item, i) : i}
-                onClick={onRowClick ? () => onRowClick(item) : undefined}
+                onClick={acionar}
                 // Linha clicável precisa ser operável por teclado (Enter/Espaço) e focável.
                 onKeyDown={
-                  onRowClick
+                  acionar
                     ? (e) => {
                         if (e.key === "Enter" || e.key === " ") {
                           e.preventDefault();
-                          onRowClick(item);
+                          acionar();
                         }
                       }
                     : undefined
                 }
-                role={onRowClick ? "button" : undefined}
-                tabIndex={onRowClick ? 0 : undefined}
-                data-clickable={onRowClick ? "" : undefined}
+                role={acionar ? "button" : undefined}
+                tabIndex={acionar ? 0 : undefined}
+                aria-expanded={rowExpanded?.(item)}
+                data-clickable={acionar ? "" : undefined}
                 className={cn(
                   "border-border/60 transition-colors",
                   // Banda sutil unindo as linhas do mesmo médico; o tom alterna entre grupos
                   // vizinhos para que duas aglomerações coladas não se fundam.
                   g != null && (g.ord % 2 === 0 ? "bg-primary/[0.05]" : "bg-muted/55"),
-                  onRowClick &&
+                  acionar &&
                     "cursor-pointer hover:bg-accent/60 focus-visible:bg-accent/60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring/50",
+                  rowClassName?.(item, i)
                 )}
               >
                 {colunas.map((c, ci) => (
                   <TableCell
                     key={c.id}
                     style={
-                      ci === 0 && accent
-                        ? { boxShadow: `inset 3px 0 0 0 ${accent}` }
-                        : undefined
+                      ci === 0 && accent ? { boxShadow: `inset 3px 0 0 0 ${accent}` } : undefined
                     }
                     className={cn(
                       "px-4 py-3 text-sm text-foreground",
                       alignClass(c.align),
                       c.align === "right" && "tabular-nums",
-                      c.cellClassName,
+                      c.cellClassName
                     )}
                   >
                     {c.cell(item)}

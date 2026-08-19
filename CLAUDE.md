@@ -143,3 +143,19 @@ auto-width do reportlab, que muda de página p/ página — aqui não).
   `services/solicitacoes.py`; `formato` nos routers `solicitacoes.py`/`vencimentos.py`
 - Frontend: `ExportarLote.tsx` (clique no ⬇ desliza XLS|PDF à direita, `grid-cols-[0fr]→[1fr]`);
   toggle de formato + `ToggleFormato` em `ExportarSolicitacoes.tsx`
+
+## Feature: Ordenação + agrupamento por cliente na aba Vencimentos (011)
+Tabela de solicitações **dentro de cada lote** (visão do parceiro: seção Vencimentos e seção
+Pagos) ganha ordenação por clique no cabeçalho, igual à aba Solicitações — mas **client-side**
+(o lote já vem inteiro no payload de `/api/vencimentos`; nada de backend, nada de escopo novo).
+Ordem PADRÃO = **Cliente A→Z**, e nessa ordem as solicitações do mesmo cliente colapsam numa
+linha-mãe (Σ Originação + Σ Rebate, seta + "N solic." na coluna Código) que expande as filhas em
+ordem cronológica (data do pedido, desempate por código). Qualquer outra coluna desfaz o
+agrupamento → lista plana (espelha a RF-009 da aba Solicitações). 1º clique: texto A→Z,
+número/data/status do maior. Cada lote guarda a própria ordem/expansão (fechar o accordion reseta).
+Rollups da linha-mãe: Vencimento = data única, ou "Várias (n)" (só ocorre na linha "Tudo pago",
+onde a unidade lista vencimentos diferentes); Status = pior-primeiro (Vencido > A Vencer > Pago).
+Janelas do gestor (`colsSolicUnidade`) NÃO mudaram.
+- Frontend: `lib/tabela/{ordenar,agrupar}.ts` (puros), `components/portal/TabelaLoteSolicitacoes.tsx`;
+  `DataTable.tsx` +3 props opcionais (`rowClassName`/`rowClickable`/`rowExpanded`);
+  wiring em `SecaoVencimentos.tsx` (sem coluna Vencimento) e `app/(portal)/vencimentos/page.tsx`

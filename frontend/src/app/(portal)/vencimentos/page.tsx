@@ -20,6 +20,7 @@ import { ErroCarregamento } from "@/components/portal/ErroCarregamento";
 import { PagarUnidade } from "@/components/portal/ConfirmarPagamento";
 import { ExportarLote } from "@/components/portal/ExportarLote";
 import { SecaoVencimentos } from "@/components/portal/SecaoVencimentos";
+import { TabelaLoteSolicitacoes } from "@/components/portal/TabelaLoteSolicitacoes";
 import {
   Accordion,
   AccordionContent,
@@ -35,7 +36,13 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Empty, EmptyDescription, EmptyHeader, EmptyMedia, EmptyTitle } from "@/components/ui/empty";
+import {
+  Empty,
+  EmptyDescription,
+  EmptyHeader,
+  EmptyMedia,
+  EmptyTitle,
+} from "@/components/ui/empty";
 import {
   Select,
   SelectContent,
@@ -129,13 +136,7 @@ function VencimentosView() {
   );
 }
 
-function VistaParceiro({
-  data,
-  rebateAtivo,
-}: {
-  data: VencimentosParceiro;
-  rebateAtivo: boolean;
-}) {
+function VistaParceiro({ data, rebateAtivo }: { data: VencimentosParceiro; rebateAtivo: boolean }) {
   // Defesa: payload pode chegar parcial (campos ausentes) — normaliza arrays.
   // Vencimentos = só lotes com pendência (a vencer + vencidos); "Tudo pago" vive na seção Pagos.
   const unidades = (data.unidades ?? []).filter((u) => !u.tudo_pago);
@@ -156,7 +157,13 @@ function VistaParceiro({
   return (
     <>
       <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
-        <StatCard index={0} label="Total Pendente" value={formatMoeda(data.cards.total_pendente)} icon={Wallet} tone="brand" />
+        <StatCard
+          index={0}
+          label="Total Pendente"
+          value={formatMoeda(data.cards.total_pendente)}
+          icon={Wallet}
+          tone="brand"
+        />
         <StatCard
           index={1}
           label="Em Atraso"
@@ -165,8 +172,20 @@ function VistaParceiro({
           tone="danger"
           highlight={temAtraso}
         />
-        <StatCard index={2} label="A Vencer" value={String(data.cards.n_a_pagar)} icon={CalendarClock} tone="brand" />
-        <StatCard index={3} label="Pagos" value={String(pagos.length)} icon={CircleCheckBig} tone="success" />
+        <StatCard
+          index={2}
+          label="A Vencer"
+          value={String(data.cards.n_a_pagar)}
+          icon={CalendarClock}
+          tone="brand"
+        />
+        <StatCard
+          index={3}
+          label="Pagos"
+          value={String(pagos.length)}
+          icon={CircleCheckBig}
+          tone="success"
+        />
       </div>
 
       <Secao
@@ -198,7 +217,10 @@ function VistaParceiro({
         {pagos.length > 0 ? (
           <SecaoVencimentos itens={pagos} tone="success" />
         ) : (
-          <EmptyVenc titulo="Nenhum pagamento ainda" descricao="Os vencimentos quitados aparecerão aqui." />
+          <EmptyVenc
+            titulo="Nenhum pagamento ainda"
+            descricao="Os vencimentos quitados aparecerão aqui."
+          />
         )}
       </Secao>
     </>
@@ -215,8 +237,20 @@ function VistaGestor({ data }: { data: VencimentosGestor }) {
   return (
     <>
       <div className="grid grid-cols-2 gap-4">
-        <StatCard index={0} label="Solicitações a Pagar" value={String(data.cards.solicitacoes_a_pagar)} icon={FileText} tone="warning" />
-        <StatCard index={1} label="Total a Receber" value={formatMoeda(data.cards.valor_total_a_receber)} icon={Banknote} tone="brand" />
+        <StatCard
+          index={0}
+          label="Solicitações a Pagar"
+          value={String(data.cards.solicitacoes_a_pagar)}
+          icon={FileText}
+          tone="warning"
+        />
+        <StatCard
+          index={1}
+          label="Total a Receber"
+          value={formatMoeda(data.cards.valor_total_a_receber)}
+          icon={Banknote}
+          tone="brand"
+        />
       </div>
 
       <Secao
@@ -277,17 +311,11 @@ function lotesDoContratante(c: ContratanteVencimentos): LoteGestor[] {
     }
   }
   return [...map.values()].sort((a, b) =>
-    a.unidade !== b.unidade ? a.unidade.localeCompare(b.unidade) : a.data < b.data ? -1 : 1,
+    a.unidade !== b.unidade ? a.unidade.localeCompare(b.unidade) : a.data < b.data ? -1 : 1
   );
 }
 
-function ContratanteLinha({
-  c,
-  agrupar,
-}: {
-  c: ContratanteVencimentos;
-  agrupar: AgruparGestor;
-}) {
+function ContratanteLinha({ c, agrupar }: { c: ContratanteVencimentos; agrupar: AgruparGestor }) {
   return (
     <AccordionItem
       value={c.contratante}
@@ -367,32 +395,35 @@ function UnidadeLinhaParceiro({
           {/* Exportar SÓ deste lote (unidade + vencimento) — modelo da planilha-mestre. */}
           <ExportarLote unidade={u.unidade} dataVencimento={u.data_vencimento} />
           <AccordionTrigger className="min-h-[3.75rem] flex-1 items-center px-2 py-3 hover:no-underline data-[state=open]:bg-muted/40">
-          <div className="flex min-w-0 flex-1 items-center gap-2 sm:gap-3">
-            <span className="min-w-0 truncate text-sm font-medium">{u.unidade}</span>
-            {u.tudo_pago ? (
-              <>
-                <div className="flex-1" />
-                <span className="inline-flex shrink-0 items-center gap-1.5 rounded-full bg-success/12 px-2.5 py-1 text-xs font-semibold text-success-ink">
-                  <CircleCheckBig className="size-3.5" />
-                  Tudo pago
-                </span>
-              </>
-            ) : (
-              <>
-                {/* Prazo do lote em destaque (vermelho se vencido). */}
-                <BadgePrazo data={u.data_vencimento} />
-                {/* Status do lote — escondido no mobile (o BadgePrazo já sinaliza atraso) pra caber. */}
-                <span className="hidden shrink-0 sm:inline-flex">
-                  <StatusLote vencido={Number(u.vencido) || 0} aVencer={Number(u.a_vencer) || 0} />
-                </span>
-                <div className="flex-1" />
-                <span className="shrink-0 text-right text-sm font-semibold tabular-nums">
-                  {formatMoeda(u.total_pendente)}
-                </span>
-              </>
-            )}
-          </div>
-        </AccordionTrigger>
+            <div className="flex min-w-0 flex-1 items-center gap-2 sm:gap-3">
+              <span className="min-w-0 truncate text-sm font-medium">{u.unidade}</span>
+              {u.tudo_pago ? (
+                <>
+                  <div className="flex-1" />
+                  <span className="inline-flex shrink-0 items-center gap-1.5 rounded-full bg-success/12 px-2.5 py-1 text-xs font-semibold text-success-ink">
+                    <CircleCheckBig className="size-3.5" />
+                    Tudo pago
+                  </span>
+                </>
+              ) : (
+                <>
+                  {/* Prazo do lote em destaque (vermelho se vencido). */}
+                  <BadgePrazo data={u.data_vencimento} />
+                  {/* Status do lote — escondido no mobile (o BadgePrazo já sinaliza atraso) pra caber. */}
+                  <span className="hidden shrink-0 sm:inline-flex">
+                    <StatusLote
+                      vencido={Number(u.vencido) || 0}
+                      aVencer={Number(u.a_vencer) || 0}
+                    />
+                  </span>
+                  <div className="flex-1" />
+                  <span className="shrink-0 text-right text-sm font-semibold tabular-nums">
+                    {formatMoeda(u.total_pendente)}
+                  </span>
+                </>
+              )}
+            </div>
+          </AccordionTrigger>
         </div>
         {/* empty:hidden → some a faixa quando não há controle (unidade toda paga sem aviso). */}
         <div className="border-t bg-muted/10 px-4 py-2 empty:hidden sm:border-0 sm:bg-transparent sm:p-0">
@@ -400,7 +431,8 @@ function UnidadeLinhaParceiro({
         </div>
       </div>
       <AccordionContent className="bg-muted/20 px-3 pt-1 pb-3">
-        <DataTable colunas={colsSolicUnidade} itens={u.solicitacoes ?? []} getKey={(s) => s.codigo} />
+        {/* Ordenável por coluna; na ordem padrão (Cliente) agrupa as solicitações do médico. */}
+        <TabelaLoteSolicitacoes itens={u.solicitacoes ?? []} />
       </AccordionContent>
     </AccordionItem>
   );
@@ -452,32 +484,36 @@ function UnidadeRow({ u, contratante }: { u: UnidadeVencimentos; contratante: st
     <div className="flex items-center gap-2">
       <ExportarLote unidade={u.unidade} contratante={contratante} />
       <Dialog>
-      <DialogTrigger asChild>
-        <button
-          type="button"
-          className="flex w-full flex-1 items-center gap-3 rounded-lg border bg-card px-3 py-2.5 text-left transition-colors hover:bg-muted/50 focus-visible:ring-2 focus-visible:ring-ring/50 focus-visible:outline-none"
-        >
-          <span className="truncate text-sm font-medium">{u.unidade}</span>
-          <BadgeStatus status={u.status} />
-          <span className="ml-auto text-sm font-semibold tabular-nums">{formatMoeda(u.total)}</span>
-          <ChevronRight className="size-4 shrink-0 text-muted-foreground" />
-        </button>
-      </DialogTrigger>
-      <DialogContent className="flex max-h-[85vh] flex-col gap-0 overflow-hidden p-0 sm:max-w-3xl">
-        <DialogHeader className="shrink-0 border-b p-4">
-          <div className="flex items-center gap-3 pr-8">
-            <DialogTitle className="truncate">{u.unidade}</DialogTitle>
+        <DialogTrigger asChild>
+          <button
+            type="button"
+            className="flex w-full flex-1 items-center gap-3 rounded-lg border bg-card px-3 py-2.5 text-left transition-colors hover:bg-muted/50 focus-visible:ring-2 focus-visible:ring-ring/50 focus-visible:outline-none"
+          >
+            <span className="truncate text-sm font-medium">{u.unidade}</span>
             <BadgeStatus status={u.status} />
-            <span className="ml-auto text-sm font-semibold tabular-nums">{formatMoeda(u.total)}</span>
+            <span className="ml-auto text-sm font-semibold tabular-nums">
+              {formatMoeda(u.total)}
+            </span>
+            <ChevronRight className="size-4 shrink-0 text-muted-foreground" />
+          </button>
+        </DialogTrigger>
+        <DialogContent className="flex max-h-[85vh] flex-col gap-0 overflow-hidden p-0 sm:max-w-3xl">
+          <DialogHeader className="shrink-0 border-b p-4">
+            <div className="flex items-center gap-3 pr-8">
+              <DialogTitle className="truncate">{u.unidade}</DialogTitle>
+              <BadgeStatus status={u.status} />
+              <span className="ml-auto text-sm font-semibold tabular-nums">
+                {formatMoeda(u.total)}
+              </span>
+            </div>
+            <DialogDescription>
+              {n} solicitaç{n === 1 ? "ão" : "ões"} — total de Originação da unidade.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="min-h-0 flex-1 overflow-y-auto p-4">
+            <DataTable colunas={colsSolicUnidade} itens={solicitacoes} getKey={(s) => s.codigo} />
           </div>
-          <DialogDescription>
-            {n} solicitaç{n === 1 ? "ão" : "ões"} — total de Originação da unidade.
-          </DialogDescription>
-        </DialogHeader>
-        <div className="min-h-0 flex-1 overflow-y-auto p-4">
-          <DataTable colunas={colsSolicUnidade} itens={solicitacoes} getKey={(s) => s.codigo} />
-        </div>
-      </DialogContent>
+        </DialogContent>
       </Dialog>
     </div>
   );
@@ -491,36 +527,36 @@ function LoteRow({ lote, contratante }: { lote: LoteGestor; contratante: string 
     <div className="flex items-center gap-2">
       <ExportarLote unidade={lote.unidade} dataVencimento={lote.data} contratante={contratante} />
       <Dialog>
-      <DialogTrigger asChild>
-        <button
-          type="button"
-          className="flex w-full flex-1 items-center gap-3 rounded-lg border bg-card px-3 py-2.5 text-left transition-colors hover:bg-muted/50 focus-visible:ring-2 focus-visible:ring-ring/50 focus-visible:outline-none"
-        >
-          <span className="truncate text-sm font-medium">{lote.unidade}</span>
-          <BadgePrazo data={lote.data} />
-          <span className="ml-auto text-sm font-semibold tabular-nums">
-            {formatMoeda(String(lote.total))}
-          </span>
-          <ChevronRight className="size-4 shrink-0 text-muted-foreground" />
-        </button>
-      </DialogTrigger>
-      <DialogContent className="flex max-h-[85vh] flex-col gap-0 overflow-hidden p-0 sm:max-w-3xl">
-        <DialogHeader className="shrink-0 border-b p-4">
-          <div className="flex flex-wrap items-center gap-3 pr-8">
-            <DialogTitle className="truncate">{lote.unidade}</DialogTitle>
+        <DialogTrigger asChild>
+          <button
+            type="button"
+            className="flex w-full flex-1 items-center gap-3 rounded-lg border bg-card px-3 py-2.5 text-left transition-colors hover:bg-muted/50 focus-visible:ring-2 focus-visible:ring-ring/50 focus-visible:outline-none"
+          >
+            <span className="truncate text-sm font-medium">{lote.unidade}</span>
             <BadgePrazo data={lote.data} />
             <span className="ml-auto text-sm font-semibold tabular-nums">
               {formatMoeda(String(lote.total))}
             </span>
+            <ChevronRight className="size-4 shrink-0 text-muted-foreground" />
+          </button>
+        </DialogTrigger>
+        <DialogContent className="flex max-h-[85vh] flex-col gap-0 overflow-hidden p-0 sm:max-w-3xl">
+          <DialogHeader className="shrink-0 border-b p-4">
+            <div className="flex flex-wrap items-center gap-3 pr-8">
+              <DialogTitle className="truncate">{lote.unidade}</DialogTitle>
+              <BadgePrazo data={lote.data} />
+              <span className="ml-auto text-sm font-semibold tabular-nums">
+                {formatMoeda(String(lote.total))}
+              </span>
+            </div>
+            <DialogDescription>
+              {n} solicitaç{n === 1 ? "ão" : "ões"} a vencer em {formatData(lote.data)}.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="min-h-0 flex-1 overflow-y-auto p-4">
+            <DataTable colunas={colsSolicUnidade} itens={lote.sols} getKey={(s) => s.codigo} />
           </div>
-          <DialogDescription>
-            {n} solicitaç{n === 1 ? "ão" : "ões"} a vencer em {formatData(lote.data)}.
-          </DialogDescription>
-        </DialogHeader>
-        <div className="min-h-0 flex-1 overflow-y-auto p-4">
-          <DataTable colunas={colsSolicUnidade} itens={lote.sols} getKey={(s) => s.codigo} />
-        </div>
-      </DialogContent>
+        </DialogContent>
       </Dialog>
     </div>
   );

@@ -2,8 +2,7 @@
 
 import { CalendarClock } from "lucide-react";
 
-import { BadgeStatus } from "@/components/BadgeStatus";
-import { DataTable, type Coluna } from "@/components/DataTable";
+import { TabelaLoteSolicitacoes } from "@/components/portal/TabelaLoteSolicitacoes";
 import {
   Accordion,
   AccordionContent,
@@ -58,34 +57,10 @@ function agrupar(itens: Solicitacao[]): Grupo[] {
   });
   // Ordena por data e, dentro da mesma data, por unidade.
   grupos.sort((a, b) =>
-    a.data !== b.data ? (a.data < b.data ? -1 : 1) : a.unidade.localeCompare(b.unidade),
+    a.data !== b.data ? (a.data < b.data ? -1 : 1) : a.unidade.localeCompare(b.unidade)
   );
   return grupos;
 }
-
-const subColunas: Coluna<Solicitacao>[] = [
-  {
-    id: "codigo",
-    header: "Código",
-    cell: (s) => (
-      <span className="font-mono text-xs font-medium text-foreground/80">{s.codigo}</span>
-    ),
-  },
-  { id: "cliente", header: "Cliente", cell: (s) => s.cliente },
-  { id: "valor", header: "Originação", align: "right", cell: (s) => formatMoeda(s.valor) },
-  {
-    id: "cashback",
-    header: "Rebate",
-    align: "right",
-    cell: (s) => <span className="text-success">{formatMoeda(s.cashback)}</span>,
-  },
-  {
-    id: "status",
-    header: "Status",
-    align: "right",
-    cell: (s) => <BadgeStatus status={s.status} />,
-  },
-];
 
 export function SecaoVencimentos({
   itens,
@@ -117,8 +92,8 @@ export function SecaoVencimentos({
               <div className="flex flex-col">
                 <span className="font-display text-sm font-semibold">{g.unidade}</span>
                 <span className="text-xs text-muted-foreground">
-                  <span className="tabular-nums">{formatData(g.data)}</span> ·{" "}
-                  {g.itens.length} solicitaç{g.itens.length === 1 ? "ão" : "ões"}
+                  <span className="tabular-nums">{formatData(g.data)}</span> · {g.itens.length}{" "}
+                  solicitaç{g.itens.length === 1 ? "ão" : "ões"}
                 </span>
               </div>
               {/* Σ rebate do lote: pendente, o parceiro só vê esse total no modal "Pagar"; pago,
@@ -137,7 +112,8 @@ export function SecaoVencimentos({
             </div>
           </AccordionTrigger>
           <AccordionContent className="px-2 pb-2">
-            <DataTable colunas={subColunas} itens={g.itens} getKey={(s) => s.codigo} />
+            {/* Todo o lote tem a mesma data de vencimento (é a chave do grupo) → sem coluna. */}
+            <TabelaLoteSolicitacoes itens={g.itens} mostrarVencimento={false} />
           </AccordionContent>
         </AccordionItem>
       ))}
@@ -161,12 +137,18 @@ function BadgeAtraso({ dias, tone }: { dias: number; tone: Tone }) {
         ? "bg-primary/10 text-primary"
         : "bg-muted text-muted-foreground";
   const texto =
-    tone === "success" ? "Pago" : dias < 0 ? `em ${Math.abs(dias)}d` : dias === 0 ? "hoje" : `${dias}d`;
+    tone === "success"
+      ? "Pago"
+      : dias < 0
+        ? `em ${Math.abs(dias)}d`
+        : dias === 0
+          ? "hoje"
+          : `${dias}d`;
   return (
     <span
       className={cn(
         "inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-xs font-semibold whitespace-nowrap",
-        cls,
+        cls
       )}
     >
       <CalendarClock className="size-3.5" />
