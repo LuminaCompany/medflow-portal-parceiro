@@ -159,3 +159,18 @@ Janelas do gestor (`colsSolicUnidade`) NÃO mudaram.
 - Frontend: `lib/tabela/{ordenar,agrupar}.ts` (puros), `components/portal/TabelaLoteSolicitacoes.tsx`;
   `DataTable.tsx` +3 props opcionais (`rowClassName`/`rowClickable`/`rowExpanded`);
   wiring em `SecaoVencimentos.tsx` (sem coluna Vencimento) e `app/(portal)/vencimentos/page.tsx`
+
+## Feature: Toggle Originação|Vencimento no gráfico "Rebate Mensal" (012)
+O card "Rebate Mensal" (Dashboard) ganha um toggle que troca a **régua do gráfico** — agrupamento
+**e** recorte temporal: `Originação` (padrão, comportamento antigo: `mes_originacao`/`data_pedido`)
+ou `Vencimento` (`mes_vencimento`/`data_vencimento` — visão de caixa: quanto de rebate abate no
+pagamento de cada mês, mesma régua do lote da feat. 004/005). O seletor de tempo da página
+(ano/meses/período) passa a valer sobre a data de vencimento quando o toggle está em `Vencimento`.
+**Só o gráfico muda**: cards, ticket médio e "Solicitações Mensais" seguem em originação. Backend
+manda as duas séries no mesmo payload (sem request novo, sem param novo); escopo/filtros idênticos
+(mesma lista `escopadas` — nenhum endpoint novo, isolamento inalterado).
+- Backend: `serie_rebate_vencimento` + `_ano_mes_texto`/`_ano_mes_vencimento`/`dentro` em
+  `app/services/overview.py`; testes em `tests/test_overview.py`
+- Frontend: `Overview.serie_rebate_vencimento` em `lib/types.ts`; `BaseRebate`/`ToggleBaseRebate`
+  e wiring do card em `app/(portal)/dashboard/page.tsx`
+- Contrato: `specs/001-portal-parceiro/contracts/api.md` §`GET /api/overview` (RF-020b)

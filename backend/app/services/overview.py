@@ -18,19 +18,29 @@ from app.domain.status import STATUS_PAGO
 from app.services.serialize import money_str
 
 
-def _ano_mes(s: Solicitacao) -> tuple[int, int]:
-    """(ano, mês) de originação. Usa `mes_originacao` (`mm/aaaa`); senão deriva de `data_pedido`.
+def _ano_mes_texto(valor_mes: str | None, fallback: date) -> tuple[int, int]:
+    """(ano, mês) a partir do texto `mm/aaaa` do sheet; cai na data quando ilegível/ausente.
 
-    `mes_originacao` é texto livre não validado no sheet: se vier ilegível (ex.: `Junho/2026`),
-    cai no fallback por `data_pedido` (sempre presente nas válidas) em vez de derrubar o endpoint.
+    As colunas de mês são texto livre não validado: se vierem malformadas (ex.: `Junho/2026`),
+    usa a data correspondente (sempre presente nas válidas) em vez de derrubar o endpoint.
     """
-    if s.mes_originacao and "/" in s.mes_originacao:
-        mm, aaaa = s.mes_originacao.split("/", 1)
+    if valor_mes and "/" in valor_mes:
+        mm, aaaa = valor_mes.split("/", 1)
         try:
             return int(aaaa.strip()), int(mm.strip())
         except ValueError:
-            pass  # célula malformada → usa a data do pedido
-    return s.data_pedido.year, s.data_pedido.month
+            pass  # célula malformada → usa a data
+    return fallback.year, fallback.month
+
+
+def _ano_mes(s: Solicitacao) -> tuple[int, int]:
+    """(ano, mês) de ORIGINAÇÃO — `mes_originacao`, fallback `data_pedido`."""
+    return _ano_mes_texto(s.mes_originacao, s.data_pedido)
+
+
+def _ano_mes_vencimento(s: Solicitacao) -> tuple[int, int]:
+    """(ano, mês) de VENCIMENTO — `mes_vencimento`, fallback `data_vencimento`."""
+    return _ano_mes_texto(s.mes_vencimento, s.data_vencimento)
 
 
 def overview(
@@ -51,6 +61,11 @@ def overview(
     [`data_de`, `data_ate`] (bordas abertas quando um dos limites é None). Sem período, vale o
     recorte por `ano` (default = ano corrente) e, opcionalmente, `meses` (toggle "por mês";
     vazio/None = ano inteiro). Cards e série refletem o recorte.
+
+    Além da série por originação, devolve `serie_rebate_vencimento` (RF-020b): o MESMO recorte
+    temporal aplicado à data de VENCIMENTO, agrupado por mês de vencimento — base do toggle do
+    gráfico "Rebate Mensal" (quanto de rebate abate no pagamento de cada mês). Só o gráfico
+    troca de base; cards, ticket médio e `serie_mensal` seguem em originação.
     """
     hoje = hoje or hoje_operacao()
     ano_ref = ano if ano is not None else hoje.year
@@ -60,14 +75,13 @@ def overview(
     escopadas = aplica_filtros(filtra_por_escopo(validas, user), filtros or [])
     anos_disponiveis = sorted({_ano_mes(s)[0] for s in escopadas}, reverse=True)
 
-    def no_intervalo(s: Solicitacao) -> bool:
+    def dentro(am: tuple[int, int], d: date) -> bool:
+        """Recorte temporal genérico: período pela data `d`, senão ano/meses por `am`."""
         if periodo_ativo:
-            d = s.data_pedido
             return (data_de is None or d >= data_de) and (data_ate is None or d <= data_ate)
-        am = _ano_mes(s)
         return am[0] == ano_ref and (meses_sel is None or am[1] in meses_sel)
 
-    no_recorte = [s for s in escopadas if no_intervalo(s)]
+    no_recorte = [s for s in escopadas if dentro(_ano_mes(s), s.data_pedido)]
 
     valor_total = sum((s.valor for s in no_recorte), Decimal("0"))
     total_cashback = sum((s.cashback for s in no_recorte), Decimal("0"))
@@ -90,6 +104,17 @@ def overview(
         for m, v in sorted(por_mes.items())
     ]
 
+    # Série do rebate por mês de VENCIMENTO (RF-020b): mesmo recorte, régua da data de vencimento.
+    por_mes_rebate_venc: dict[str, Decimal] = defaultdict(lambda: Decimal("0"))
+    for s in escopadas:
+        am_venc = _ano_mes_vencimento(s)
+        if not dentro(am_venc, s.data_vencimento):
+            continue
+        por_mes_rebate_venc[f"{am_venc[0]:04d}-{am_venc[1]:02d}"] += s.cashback
+    serie_rebate_vencimento = [
+        {"mes": m, "rebate": money_str(v)} for m, v in sorted(por_mes_rebate_venc.items())
+    ]
+
     return {
         "cards": {
             "total_solicitacoes": len(no_recorte),
@@ -101,6 +126,7 @@ def overview(
             "medicos_impactados": len(medicos),
         },
         "serie_mensal": serie,
+        "serie_rebate_vencimento": serie_rebate_vencimento,
         "ano": ano_ref,
         "anos_disponiveis": anos_disponiveis,
     }

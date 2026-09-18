@@ -20,16 +20,33 @@ import { SeletorTempoOverview } from "@/components/portal/SeletorTempoOverview";
 import { INTERVALO_VAZIO, type Intervalo } from "@/components/ui/date-range-picker";
 import { GraficoMensal } from "@/components/GraficoMensal";
 import { GraficoRebate } from "@/components/GraficoRebate";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Card,
+  CardAction,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
 import { Empty, EmptyDescription, EmptyHeader, EmptyMedia, EmptyTitle } from "@/components/ui/empty";
 import { Skeleton } from "@/components/ui/skeleton";
 import { apiGet } from "@/lib/api";
 import { useFiltros } from "@/lib/filtros/useFiltros";
 import { formatMoeda } from "@/lib/format";
 import { useMe } from "@/lib/useMe";
+import { cn } from "@/lib/utils";
 import type { Overview } from "@/lib/types";
 
 const TODOS_OS_MESES = Array.from({ length: 12 }, (_, i) => i + 1);
+
+// Base do gráfico "Rebate Mensal": mês em que a solicitação foi originada (visão comercial)
+// ou mês em que ela vence (visão de caixa — é por vencimento que o lote é pago).
+type BaseRebate = "originacao" | "vencimento";
+
+const BASES_REBATE: { id: BaseRebate; label: string }[] = [
+  { id: "originacao", label: "Originação" },
+  { id: "vencimento", label: "Vencimento" },
+];
 
 function DashboardView() {
   const { me } = useMe();
@@ -38,6 +55,7 @@ function DashboardView() {
   const [ano, setAno] = useState(() => new Date().getFullYear());
   const [meses, setMeses] = useState<number[]>(TODOS_OS_MESES);
   const [intervalo, setIntervalo] = useState<Intervalo>(INTERVALO_VAZIO); // período de originação; substitui ano/meses
+  const [baseRebate, setBaseRebate] = useState<BaseRebate>("originacao");
   const [data, setData] = useState<Overview | null>(null);
   const [carregando, setCarregando] = useState(true);
   const [erro, setErro] = useState<string | null>(null);
@@ -77,6 +95,11 @@ function DashboardView() {
   }, [data, ano]);
 
   const primeiroNome = me?.nome_exibicao?.trim().split(/\s+/)[0] ?? "";
+
+  // Base do gráfico de rebate: por vencimento, o recorte temporal também passa a valer sobre a
+  // data de vencimento (o backend manda a série pronta). `?? []` cobre backend antigo no deploy.
+  const porVencimento = baseRebate === "vencimento";
+  const serieRebate = (porVencimento ? data?.serie_rebate_vencimento : data?.serie_mensal) ?? [];
 
   return (
     <div className="flex flex-col gap-7">
@@ -194,16 +217,25 @@ function DashboardView() {
             </div>
           </div>
 
-          {/* Rebate mensal (verde) — abaixo das solicitações, mesmo tamanho (col-span-2) */}
+          {/* Rebate mensal (verde) — abaixo das solicitações, mesmo tamanho (col-span-2).
+              O toggle troca a régua do gráfico (agrupamento E recorte): originado no mês
+              (`serie_mensal`) ou vencendo no mês (`serie_rebate_vencimento`). */}
           <div className="grid gap-4 lg:grid-cols-3">
             <Card className="p-5 lg:col-span-2">
               <CardHeader className="px-0">
                 <CardTitle className="font-display text-lg font-bold">Rebate Mensal</CardTitle>
-                <CardDescription>Soma do rebate por mês.</CardDescription>
+                <CardDescription>
+                  {porVencimento
+                    ? "Soma do rebate por mês de vencimento."
+                    : "Soma do rebate por mês de originação."}
+                </CardDescription>
+                <CardAction>
+                  <ToggleBaseRebate base={baseRebate} onBase={setBaseRebate} />
+                </CardAction>
               </CardHeader>
               <CardContent className="px-0">
-                {data.serie_mensal.length > 0 ? (
-                  <GraficoRebate serie={data.serie_mensal} />
+                {serieRebate.length > 0 ? (
+                  <GraficoRebate serie={serieRebate} />
                 ) : (
                   <Empty className="h-[300px]">
                     <EmptyHeader>
@@ -212,7 +244,9 @@ function DashboardView() {
                       </EmptyMedia>
                       <EmptyTitle>Sem histórico ainda</EmptyTitle>
                       <EmptyDescription>
-                        Quando houver rebate, a evolução mensal aparece aqui.
+                        {porVencimento
+                          ? "Quando houver rebate vencendo no recorte, a evolução aparece aqui."
+                          : "Quando houver rebate, a evolução mensal aparece aqui."}
                       </EmptyDescription>
                     </EmptyHeader>
                   </Empty>
@@ -222,6 +256,42 @@ function DashboardView() {
           </div>
         </>
       )}
+    </div>
+  );
+}
+
+function ToggleBaseRebate({
+  base,
+  onBase,
+}: {
+  base: BaseRebate;
+  onBase: (base: BaseRebate) => void;
+}) {
+  return (
+    <div
+      role="group"
+      aria-label="Base do gráfico de rebate"
+      className="flex items-center gap-1 rounded-lg bg-muted p-0.5 ring-1 ring-border"
+    >
+      {BASES_REBATE.map(({ id, label }) => {
+        const ativo = base === id;
+        return (
+          <button
+            key={id}
+            type="button"
+            aria-pressed={ativo}
+            onClick={() => onBase(id)}
+            className={cn(
+              "rounded-md px-2.5 py-1 text-xs font-medium transition-colors",
+              ativo
+                ? "bg-card text-primary ring-1 ring-primary/25"
+                : "text-muted-foreground hover:text-foreground",
+            )}
+          >
+            {label}
+          </button>
+        );
+      })}
     </div>
   );
 }

@@ -166,6 +166,13 @@ refletem esse recorte **mais** os **filtros dinâmicos** não-temporais da aba `
 meses do recorte (RF-020), formato `aaaa-mm`. `anos_disponiveis` lista os anos com dados
 (alimenta o seletor de ano).
 
+**`serie_rebate_vencimento`** (RF-020b) é a mesma soma de rebate, porém com o recorte temporal
+(ano/meses ou período) e o agrupamento aplicados sobre a **data de vencimento**
+(`mes_vencimento`, fallback `data_vencimento`) em vez da originação — base do toggle
+"Originação | Vencimento" do gráfico "Rebate Mensal" (visão de caixa: quanto de rebate abate
+no pagamento de cada mês). Vem sempre no payload, junto da série por originação; só o gráfico
+troca de base — `cards`, `ticket_medio` e `serie_mensal` seguem em originação.
+
 > **`total_cashback`** é o agregado do campo `cashback` (rótulo de produto: **Rebate**).
 > **`ticket_medio`** = `valor_total` ÷ médicos distintos = média dos totais por médico
 > (RF-019). O card "Comparativo" e o param `mes` foram **removidos**.
@@ -175,7 +182,8 @@ meses do recorte (RF-020), formato `aaaa-mm`. `anos_disponiveis` lista os anos c
     "total_solicitacoes": 13, "valor_total":"124232.79", "total_cashback":"0.00",
     "ticket_medio":"62116.40", "em_aberto": 2, "pagas": 11, "medicos_impactados": 2
   },
-  "serie_mensal": [{ "mes":"2026-01", "valor":"39000.00" }],
+  "serie_mensal": [{ "mes":"2026-01", "valor":"39000.00", "rebate":"390.00" }],
+  "serie_rebate_vencimento": [{ "mes":"2026-03", "rebate":"390.00" }],
   "ano": 2026,
   "anos_disponiveis": [2026, 2025]
 }

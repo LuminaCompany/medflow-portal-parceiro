@@ -11,7 +11,10 @@ AH = "A.H. GESTÃO MÉDICA"
 HOJE = date(2026, 6, 25)
 
 
-def _sol(contratante, codigo, cliente, status, valor, mes_orig, cashback="0"):
+def _sol(
+    contratante, codigo, cliente, status, valor, mes_orig, cashback="0",
+    mes_venc=None, venc=date(2026, 7, 1),
+):
     return Solicitacao(
         codigo=codigo,
         quitado=(status == "pago"),
@@ -19,9 +22,10 @@ def _sol(contratante, codigo, cliente, status, valor, mes_orig, cashback="0"):
         valor=Decimal(valor),
         cashback=Decimal(cashback),
         data_pedido=date(2026, 1, 15),
-        data_vencimento=date(2026, 7, 1),
+        data_vencimento=venc,
         contratante=contratante,
         mes_originacao=mes_orig,
+        mes_vencimento=mes_venc,
         status=status,
         status_label=status,
     )
@@ -97,3 +101,56 @@ def test_mes_originacao_malformado_nao_derruba_endpoint():
     # data_pedido é 2026-01-15 (fallback) → série no mês 2026-01, sem crash.
     assert ov["cards"]["total_solicitacoes"] == 1
     assert [p["mes"] for p in ov["serie_mensal"]] == ["2026-01"]
+
+
+# --- Série do rebate por mês de VENCIMENTO (RF-020b, toggle do gráfico "Rebate Mensal") ---
+
+# Todas originadas em 01/2026 (data_pedido), mas vencendo em meses diferentes de 2026.
+DATASET_VENC = [
+    _sol(BESA, "1", "Dr. Ana", "pago", "1000", "01/2026", cashback="10",
+         mes_venc="03/2026", venc=date(2026, 3, 10)),
+    _sol(BESA, "2", "Dr. Bruno", "a_pagar", "2000", "01/2026", cashback="20",
+         mes_venc="04/2026", venc=date(2026, 4, 10)),
+    _sol(BESA, "3", "Dr. Ana", "atrasado", "500", "01/2026", cashback="5",
+         mes_venc="04/2026", venc=date(2026, 4, 20)),
+    _sol(AH, "9", "Dr. Carlos", "a_pagar", "9999", "01/2026", cashback="99",
+         mes_venc="04/2026", venc=date(2026, 4, 10)),
+]
+
+
+def test_serie_rebate_vencimento_agrupa_pelo_mes_de_vencimento():
+    ov = overview(DATASET_VENC, _user("parceiro", BESA), ano=2026, hoje=HOJE)
+    venc = {p["mes"]: p["rebate"] for p in ov["serie_rebate_vencimento"]}
+    assert venc == {"2026-03": "10.00", "2026-04": "25.00"}  # AH fora (escopo)
+    # A série por originação segue intacta: tudo em 01/2026.
+    assert [p["mes"] for p in ov["serie_mensal"]] == ["2026-01"]
+
+
+def test_serie_rebate_vencimento_respeita_recorte_por_meses():
+    """O toggle 'por mês' passa a recortar pela data de VENCIMENTO nessa série."""
+    ov = overview(DATASET_VENC, _user("parceiro", BESA), ano=2026, meses=[4], hoje=HOJE)
+    assert [p["mes"] for p in ov["serie_rebate_vencimento"]] == ["2026-04"]
+    # Cards seguem em originação: nenhuma solicitação originada em abril.
+    assert ov["cards"]["total_solicitacoes"] == 0
+
+
+def test_serie_rebate_vencimento_respeita_periodo_de_datas():
+    ov = overview(
+        DATASET_VENC, _user("parceiro", BESA),
+        data_de=date(2026, 4, 1), data_ate=date(2026, 4, 15), hoje=HOJE,
+    )
+    venc = {p["mes"]: p["rebate"] for p in ov["serie_rebate_vencimento"]}
+    assert venc == {"2026-04": "20.00"}  # só o vencimento de 10/04 (o de 20/04 fica fora)
+
+
+def test_serie_rebate_vencimento_isolada_por_contratante():
+    ov = overview(DATASET_VENC, _user("parceiro", AH), ano=2026, hoje=HOJE)
+    venc = {p["mes"]: p["rebate"] for p in ov["serie_rebate_vencimento"]}
+    assert venc == {"2026-04": "99.00"}  # só AH
+
+
+def test_mes_vencimento_malformado_cai_na_data_vencimento():
+    ruim = _sol(BESA, "7", "Dr. Ana", "a_pagar", "100", "01/2026", cashback="7",
+                mes_venc="Março/2026", venc=date(2026, 3, 9))
+    ov = overview([ruim], _user("parceiro", BESA), ano=2026, hoje=HOJE)
+    assert [p["mes"] for p in ov["serie_rebate_vencimento"]] == ["2026-03"]

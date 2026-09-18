@@ -136,6 +136,9 @@ export interface Overview {
     medicos_impactados: number;
   };
   serie_mensal: { mes: string; valor: string; rebate: string }[];
+  // Rebate agrupado pelo mês de VENCIMENTO (mesmo recorte, régua da data de vencimento):
+  // base alternativa do gráfico "Rebate Mensal" (RF-020b).
+  serie_rebate_vencimento: { mes: string; rebate: string }[];
   ano: number;
   anos_disponiveis: number[];
 }
