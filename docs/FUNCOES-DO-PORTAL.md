@@ -408,9 +408,9 @@ acessa** (403).
 | Função | Como funciona |
 |--------|---------------|
 | **Campo de busca** | Busca por código, cliente ou motivo (debounce, server-side). |
+| **Filtros ao lado da busca** | Um ativo por vez, cada botão com a contagem. **Individuais**: médicos "sem franquia" (Contratante = `INDIVIDUAL`) — não são erro de dado e **não aparecem para parceiros**. **Parceiro** (padrão): tudo que não é Individual, inclusive linha sem Contratante. **Um botão por Contratante com pendência** (só quem tem pendência; A.H. GESTÃO MÉDICA fixa em 1º, demais A→Z). Filtro e contagens são client-side sobre a lista inteira (buscada página a página). |
 | **Tabela de pendências** | Colunas: Linha (origem no sheet), Código, Cliente, Contratante, Originação, Motivos (chips de erro). |
 | **Botão "Ver mais"** | Paginação incremental (páginas de 50). |
-| **Seção "Contratantes como Individual"** | Bloco separado, abaixo, para médicos "sem franquia" (Contratante = `INDIVIDUAL`). Não são erro de dado e **não aparecem para parceiros**. |
 | **Botão "Tentar de novo"** | Recarrega em caso de erro. |
 
 ---

@@ -17,4 +17,6 @@ def get_pendencias(
     offset: int = Query(0, ge=0),
 ) -> dict:
     dataset = get_dataset_service().get()
-    return listar_pendencias(dataset.pendencias, q=q, limit=limit, offset=offset)
+    return listar_pendencias(
+        dataset.pendencias, q=q, limit=limit, offset=offset, validas=dataset.validas
+    )

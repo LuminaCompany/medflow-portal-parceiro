@@ -1,0 +1,163 @@
+E aí o que acontece cara, eles têm uma escala lá que no mesmo Hospital a gente faz pronto-socorro e pronto atendimento. E aí até então o nosso atendimento antecipa é um socorro e pronto atendimento às vezes numa única operação o que para a gente não tem problema aqui internamente mas para aparecer lá no portal precisaria ser separado porque eles fazem o pagamento do pronto socorro separado do pronto atendimento. Então e aí, o que que acontece quando faz junto a unidade referência como
+
+certo
+
+você tá vendo aquela fica vazia tá vendo? Ó, por exemplo aqui ó, esse aqui tá vazio, porque foi pronto atendimento 350 no pronto-socorro 7.200. Entendeu aqui ó, tá vazio, porque tem p a EPS Às vezes a gente faz hoje em dia não mais mas enfim, o que que a gente fez aqui a gente colocou para o
+
+Entendi.
+
+atendimento para o atendimento já fazer as operações separadas para que a gente vem aqui embaixo, por exemplo a maioria, tá? Já certinho, tá vendo? Tudo separadinho a pspa mesmo que seja da mesma pessoa não tem problema que eu por exemplo que vai pegar Runner aqui ó, ela tem pi PS. Ela fez a operação no mesmo dia na mesma hora, só que o atendimento.
+
+sim
+
+Aconteceu da última operação dela o pessoal esquecer por exemplo e fazer juntos. Entendeu então na operação aqui de cima apareceria certo lá na separado por
+
+Entendi.
+
+unidade bonitinho no portal nessa aqui já não não apareceria porque aqui ficaria sem unidade referência. E aí eu queria ver com você, como que a gente consegue solucionar isso, entendeu?
+
+Cara, não dá para só editar ou não é possível.
+
+Eu não consigo editar cara pelo seguinte, eu teria que abrir mais uma linha aqui, né? Essa linha que eu teria que abrir aqui ela desconfigura todinha no meu banco de dados lá na planilha mãe que vem para cá, entendeu?
+
+Entendi beleza
+
+Não consigo duplicar.
+
+Cara a gente consegue pegar vocês, sempre vão escrever dessa forma aí. Se não for da outra forma, vocês vão colocar o pa. Aí depois em parênteses e o valor e depois PS e depois valor sempre vai ser dessa forma. Nesse exato momento.
+
+É assim, ó, tá vendo? Às vezes vem só p a IPS ó. Às vezes vem só IPs.
+
+beleza E o valor ficaria.
+
+Não necessariamente vem o valor. Tá então, esse é o problema. Aqui por exemplo. Tá só o valor todo Ana Luiza, tá vendo? Aqui Mas qual que era sugestão que você ia me dar me dá? E aí eu vejo a saída aqui.
+
+Sem sem o valor fica um pouco complicado, mas mas o sistema vai eu consigo colocar para ele identificar né? Se for de uma forma ele pega tranquilo. Se for da outra e também pega né? Basicamente isso. Se for tanto de da unidade ali dos dois ou só com a observação, né com a na linha ali de na coluna de observação consegue pegar das duas maneiras, mas sem valor. Aí é um pouco complicado.
+
+Tá se se tiver assim funciona.
+
+Sim, eu consigo fazer uma variável.
+
+Mesmo que esteja sem moeda aqui por exemplo em número corrido.
+
+Sim, sim.
+
+Tá eu acho que então essa essa é uma trava para a gente colocar a gente já pode colocar isso lá tá para esse para esse cliente específico, tá?
+
+beleza beleza
+
+Porque às vezes em alguns outros clientes vem umas observações diferentes aqui vem texto tá vendo ó, então assim. Para esse cliente em específico, essa é uma trava. a outra trava Você atende ele para mim, por favor é 6815, por favor, pode falar que eu já desço lá. Perdão cara é bom, essa é uma trava que a gente pode começar por ela. E Existe alguma possibilidade da gente colocar se estiver assim para que a gente valide em algum setor do portal do parceiro. Quanto é de cada unidade?
+
+Certo, eu consigo fazer isso também. Eu consigo fazer isso lá naquela aba de pendências que aí eu separo Coloca alguma sessão separada e vocês colocam o valor lá e aí ele passa a funcionar como se fosse daquela forma de observação, beleza? Como se fosse da coluna de observação ali.
+
+Não entendi
+
+É porque para se contratante ela pode funcionar de três maneiras, né? Primeiro a maneira com as duas unidades certo PS. Não é no caso seria pspa aqui na coluna de unidade de referência certo? Essa primeira maneira aí tem a segunda maneira que é dentro de observação TPA e o valor e PS e o valor certo.
+
+Tá entendi.
+
+E aí tem a terceira maneira que é o sol pés sem o valor OK aí isso aí vai ficar lá em pendências uma sessão separada em cima para vocês colocarem o valor separadamente no caso manualmente. E aí beleza quando vocês colocarem o valor ele vai passar a funcionar como se fosse a segunda opção. Que no caso não tem muita diferença de como vai passar a funcionar essa roupa só para vocês terem uma ideia mesmo ele vai.
+
+Entendi, esse aqui ó, por exemplo, essa aqui a gente está vendo a minha tela aí né? Essa essa aba aqui é ABA de pendências que eu tenho acesso enquanto o
+
+certo
+
+gestor certo. Aqui ó, por exemplo tá faltando unidade de referência. Por que que isso aqui tá faltando unidade de referência porque são exatamente esses casos.
+
+sim
+
+Tá vendo? Então aqui por exemplo. Acho que até por acho que deve estar até Como individual tá a gente vê mais aqui, vamos ver mais para a gente ver se a gente consegue chegar na última lá que eu sei que por exemplo. aqui Deixa ver quanto que é a operação dela. A gente não 054 aqui unidade referência faltando tá vendo ausente É
+
+Mas beleza entendi dá para ser corrido daquela maneira, mas na nos próximos
+
+exatamente. Esse caso é exatamente esse caso que aconteceu ela ela é uma ela é uma dessas. então Tá, beleza.
+
+Vocês conseguem fazer dar na primeira opção, né? Vocês não vão mais errar ou tem a chance?
+
+É cara assim não vamos é muito forte existe a chance, entendeu? Por que que
+
+tranquilo
+
+eu tô te falando isso? Porque que eu tô te falando isso? É porque que eu quero prever? Erros e ter possibilidades porque o que acontece é essa essa esse parceiro tá com a gente há mais de ano já então o atendimento está acostumado a fazer assim, então assim tá saindo as operações da forma que tem que sair, mas uma outra casa escapando entendeu? Como foi essa da que eu te mostrei ali agora então por isso que eu quero precaver outros outros meios e aí o que a gente pode fazer é o seguinte vou te pedir para quem pendência pendências aqui a gente assim como tá aqui embaixo que tá nas pendências dos contratantes por contratante.
+
+Tá, beleza.
+
+Tá a gente não deixa junto aqui porque aqui por exemplo tem H tem mmr tem Azevedo. Então a gente coloca as pendências por contratante, porque daí fica mais fácil da gente visualizar achar o erro e consertar.
+
+Opa Mateus travou uns 10 segundos atrás pode repetir?
+
+A gente deixar deixar as pendências de dados aqui separados por contratante. Então a gente tem um card desse aqui para cada contratante.
+
+Beleza, e aí retirar a forma individual, né?
+
+Não pode deixar um individual também pode indicar o individual também não tem problema exatamente, como tá aqui.
+
+Então uma beleza.
+
+e É exatamente como tá aqui ó contratante individual vai ter um contratante H contratante pesa contratante fulano contratantes ciclano e aí tenha aqui só fica de cada contratante, entendeu?
+
+Beleza, beleza, OK?
+
+Tá. E aí, eu queria que seria interessante que a gente conseguisse fazer essa mudança aqui, né? Esse direcionamento aqui porque eu não consigo mexer na planilha lá.
+
+Sim, tranquilo, aí ele muda só na na visão aí do portal.
+
+tá Boa e aí, a gente vai fazer o seguinte. Quais são as operações que vão aparecer como eu te falei esse esse parceiro? Ele tá há mais de um ano já com a gente. Porém entre tudo todavia cara, vai ser muita bagunça, se a gente deixar aparecer no tudo para ele, eu quero que a gente passe a mostrar para ele os dados com que vão vencer a partir de 5/10.
+
+Tá parte do ciclo do 10 aí para frente.
+
+De 2026 é a gente vai iniciar os dados mostrados para h baseado na data de vencimento.
+
+Beleza 5 do 10, né?
+
+De 26 para frente então a princípio tá a princípio é para aparecer esses dois períodos aqui ó, vencimento de 5/10 e 5/11. É só isso que é para aparecer lá e aí depois.
+
+Beleza, ok?
+
+Deixa eu só ver um negócio é por exemplo vai ter lá 5/10 5/11 30/11 30/12 isso aqui é para aparecer lá.
+
+Tá um pouco borrado. Mas seria um eu vejo aqui na gravação para mim entender.
+
+Toda a partir de 5/10 todos os vencimentos. É todos os vencimentos a partir de 5/10.
+
+Ok tranquilo
+
+beleza
+
+Belezura Cara consegui entender bem dá para baixar sim sem problemas.
+
+Boa deixa eu te perguntar uma coisa, quando que você acha que a gente consegue estar com isso no ar.
+
+Cara, até eu não vou dar um dar um prazo assim que às vezes pode acontecer com algum imprevisto alguma coisa até comigo mesmo alguma coisa pessoal então segunda ali na segunda terça.
+
+Será que a gente consegue pouquinho antes? Porque que eu tô te falando isso esse vencimento de 5/10? Não tá bom, se você conseguir segunda para mim já me ajuda.
+
+tá
+
+beleza porque Isso aí, eles precisam pagar para mim. Daqui a pouco você viu que é 5 do 10, mas eles pagam antes. Eles pagam bem antes na verdade então. Eles costumam pagar para mim dia 26 28 ou segunda-feira, eles vão estar me pagando isso, entendeu? Então se eu conseguisse lançar isso essa semana. Seria melhor se você conseguisse mas
+
+Bom ele assim se eu conseguir antes eu falo tá? Provavelmente ali no final de
+
+tá
+
+semana dá para implementar também, ok?
+
+Tá, beleza. Beleza cara, acho que é isso.
+
+Beleza, entendi tudo qualquer coisinha eu vejo que a gravação e se não tiver eu pergunto lá no grupo. Sem problema.
+
+Boa fechou Cara isso o restante não muda nada, tá?
+
+Oi
+
+O restante nos outros parceiros não vai mudar nada. É só para isso aí mesmo.
+
+Tranquilo, beleza?
+
+beleza
+
+Beleza, Mateus é nós. Tchau, tchau.
+
+Fechou então, meu querido. Valeu cara, um abraço.
+
+Até mais.

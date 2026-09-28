@@ -14,7 +14,8 @@ def _sol(contratante: str, codigo: str, unidade: str | None = None) -> Solicitac
         cliente="Dr. X",
         valor=Decimal("100"),
         data_pedido=date(2026, 1, 1),
-        data_vencimento=date(2026, 7, 1),
+        # Após o corte da AH (05/10/2026, feature 014) — senão o parceiro AH não vê nada.
+        data_vencimento=date(2026, 10, 10),
         contratante=contratante,
         unidade=unidade,
         status="a_pagar",
@@ -40,8 +41,8 @@ def test_parceiro_so_ve_o_proprio():
 def test_parceiro_nunca_ve_outro():
     user = _user("parceiro", "A.H. GESTÃO MÉDICA")
     out = filtra_por_escopo(DATASET, user)
+    assert [s.codigo for s in out] == ["2"]
     assert all(s.contratante == "A.H. GESTÃO MÉDICA" for s in out)
-    assert "1" not in [s.codigo for s in out]
 
 
 def test_parceiro_sem_contratante_nao_ve_nada():

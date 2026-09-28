@@ -5,12 +5,14 @@ de detalhes. É a fonte única que todos os serviços de feature consomem — to
 operam sobre `validas`; só `/api/admin/pendencias` vê `pendencias`.
 """
 
+import logging
 from collections.abc import Callable
 from dataclasses import dataclass
 from functools import lru_cache
 
 from app.config import Settings, get_settings
 from app.domain.datas import hoje
+from app.domain.divisao import DivisaoSalva
 from app.domain.models import Medico, Pendencia, Solicitacao
 from app.domain.validation import particiona
 from app.sheets.cache import TTLCache
@@ -21,6 +23,8 @@ from app.sheets.parser import (
     parse_cadastro,
     parse_solicitacoes,
 )
+
+logger = logging.getLogger(__name__)
 
 
 class EmptyDatasetError(RuntimeError):
@@ -58,6 +62,7 @@ class DatasetService:
         settings: Settings,
         client: SheetsClient | None = None,
         trigramas_provider: Callable[[], dict[str, str]] | None = None,
+        divisoes_provider: Callable[[], dict[tuple[str, str], DivisaoSalva]] | None = None,
     ) -> None:
         self._settings = settings
         self._client = client or SheetsClient(settings)
@@ -65,6 +70,10 @@ class DatasetService:
         # Overrides de trigrama por Contratante (feature 009). Provider externo (config do
         # gestor no Auth); ausente/falha → {} (o parser cai no trigrama padrão de 3 letras).
         self._trigramas_provider = trigramas_provider
+        # Divisões por unidade salvas pelo gestor (feature 014, Postgres). Falha → mantém o
+        # último mapa bom (senão as linhas já divididas voltariam à pendência por um TTL).
+        self._divisoes_provider = divisoes_provider
+        self._divisoes_ok: dict[tuple[str, str], DivisaoSalva] = {}
 
     def _trigramas(self) -> dict[str, str]:
         """Mapa contratante→trigrama override. Falha fechada: erro do Auth não derruba a carga."""
@@ -74,6 +83,15 @@ class DatasetService:
             return self._trigramas_provider()
         except Exception:  # noqa: BLE001 — sem overrides o código só cai no padrão, não quebra
             return {}
+
+    def _divisoes(self) -> dict[tuple[str, str], DivisaoSalva]:
+        if self._divisoes_provider is None:
+            return {}
+        try:
+            self._divisoes_ok = self._divisoes_provider()
+        except Exception:  # noqa: BLE001 — Postgres fora não derruba a carga do sheet
+            logger.warning("Falha ao ler divisões; mantém o último mapa.", exc_info=True)
+        return self._divisoes_ok
 
     def _load(self) -> Dataset:
         # Uma única chamada à Sheets API (batchGet) traz as 3 abas de uma vez.
@@ -89,7 +107,11 @@ class DatasetService:
         base = parse_base(base_rows)
         parsed = parse_solicitacoes(sol_rows)
         validas, pendencias = particiona(
-            parsed, cadastro, hoje=hoje(), trigramas=self._trigramas()
+            parsed,
+            cadastro,
+            hoje=hoje(),
+            trigramas=self._trigramas(),
+            divisoes=self._divisoes(),
         )
         return Dataset(validas=validas, pendencias=pendencias, base_medicos=base)
 
@@ -113,7 +135,20 @@ def _carrega_trigramas() -> dict[str, str]:
     return PartnersService(get_supabase_auth().admin).mapa_trigramas()
 
 
+def _carrega_divisoes() -> dict[tuple[str, str], DivisaoSalva]:
+    """Divisões por unidade salvas pelo gestor (feature 014). Quando o gestor salva/desfaz uma,
+    o router invalida o cache p/ a linha repartir (ou voltar à pendência) na hora."""
+    from app.auth.supabase import get_supabase_auth
+    from app.services.divisoes import DivisoesService
+
+    return DivisoesService(get_supabase_auth().admin).mapa()
+
+
 @lru_cache
 def get_dataset_service() -> DatasetService:
     """Instância única do serviço (cache TTL compartilhado por todo o processo)."""
-    return DatasetService(get_settings(), trigramas_provider=_carrega_trigramas)
+    return DatasetService(
+        get_settings(),
+        trigramas_provider=_carrega_trigramas,
+        divisoes_provider=_carrega_divisoes,
+    )

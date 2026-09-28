@@ -174,3 +174,34 @@ manda as duas séries no mesmo payload (sem request novo, sem param novo); escop
 - Frontend: `Overview.serie_rebate_vencimento` em `lib/types.ts`; `BaseRebate`/`ToggleBaseRebate`
   e wiring do card em `app/(portal)/dashboard/page.tsx`
 - Contrato: `specs/001-portal-parceiro/contracts/api.md` §`GET /api/overview` (RF-020b)
+
+## Feature: Filtros por parceiro na aba Pendências (013)
+Ao lado da busca (gestor-only): **Individuais** (Contratante `INDIVIDUAL`) | **Parceiro** (padrão;
+tudo que não é Individual, inclusive linha sem Contratante — não há "Todas") + um botão por
+Contratante **com pendência** (A.H. GESTÃO MÉDICA fixa em 1º via `PARCEIRO_FIXO`, match sem
+acento/pontuação; demais A→Z), todos com contagem. A antiga seção "Contratantes como Individual"
+virou o filtro. Filtro/contagens **client-side**: a lista é buscada inteira página a página (teto
+200 do backend). Nada de backend/endpoint novo — isolamento inalterado.
+- Frontend: `app/(portal)/pendencias/page.tsx`; `components/portal/FiltroGrupo.tsx` (segmentado
+  extraído do Feedbacks, + `count` opcional)
+
+## Feature: A.H. GESTÃO MÉDICA — divisão PA/PS pela OBS + corte de vencimento (014)
+Regras **só da AH** (`domain/regras_contratante.py`, ponto único). (1) Parceiro AH só vê
+**vencimento ≥ 05/10/2026** (corte em `filtra_por_escopo`; gestor mantém histórico; pendências e
+"Falta aviso" da AH anteriores ao corte somem). (2) Linha AH pós-corte com **Unidade vazia** é
+repartida em N solicitações (PA→`PA Lorena`, PS→`PS Lorena`) lendo a **OBS** (`domain/divisao.py`:
+leitor tolerante, falha fechado; tolerância R$ 1; demais valores em dinheiro rateados pela
+proporção). Sem valor / não reconhecida / soma errada / OBS vazia → **pendência de divisão**: o
+gestor informa unidades+valores na seção "Divisão por unidade" (topo de Pendências); salvo na
+tabela `divisoes_unidade` (chave contratante + código de origem da coluna A; `valor_total`
+congelado — Originação mudou ⇒ volta à pendência). NÃO toca sheet/CRM. Endpoints gestor-only
+(entram na varredura `test_e2e_isolamento.py`).
+- ADR: `docs/adr/0005-ah-divisao-por-unidade-e-corte.md`
+- Migration: `supabase/migrations/20260928_divisoes_unidade.sql` (aplicar manual no Supabase)
+- Backend: `domain/{regras_contratante,divisao}.py`; `particiona(..., divisoes=)` em
+  `domain/validation.py`; corte em `domain/scope.py` e `services/pagamentos.py`;
+  `services/divisoes.py` + `routers/divisoes.py` (`GET/PUT/DELETE /api/admin/divisoes`);
+  provider `_carrega_divisoes` em `services/dataset.py`; geração no `sheets/cache.py`
+- Frontend: `components/portal/DivisaoUnidades.tsx` (`SecaoDivisao`), wiring em
+  `app/(portal)/pendencias/page.tsx`; `parseMoedaCentavos`/`centavosParaTexto` em `lib/format.ts`
+- Testes: `tests/test_divisao.py`, `tests/test_divisoes_router.py`

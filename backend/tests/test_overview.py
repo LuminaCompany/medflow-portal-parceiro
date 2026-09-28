@@ -113,8 +113,9 @@ DATASET_VENC = [
          mes_venc="04/2026", venc=date(2026, 4, 10)),
     _sol(BESA, "3", "Dr. Ana", "atrasado", "500", "01/2026", cashback="5",
          mes_venc="04/2026", venc=date(2026, 4, 20)),
+    # AH só enxerga vencimento ≥ 05/10/2026 (corte da feature 014).
     _sol(AH, "9", "Dr. Carlos", "a_pagar", "9999", "01/2026", cashback="99",
-         mes_venc="04/2026", venc=date(2026, 4, 10)),
+         mes_venc="10/2026", venc=date(2026, 10, 10)),
 ]
 
 
@@ -146,7 +147,7 @@ def test_serie_rebate_vencimento_respeita_periodo_de_datas():
 def test_serie_rebate_vencimento_isolada_por_contratante():
     ov = overview(DATASET_VENC, _user("parceiro", AH), ano=2026, hoje=HOJE)
     venc = {p["mes"]: p["rebate"] for p in ov["serie_rebate_vencimento"]}
-    assert venc == {"2026-04": "99.00"}  # só AH
+    assert venc == {"2026-10": "99.00"}  # só AH
 
 
 def test_mes_vencimento_malformado_cai_na_data_vencimento():

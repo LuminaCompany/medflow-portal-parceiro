@@ -30,6 +30,9 @@ class TTLCache(Generic[T]):
         self._expires_at: float = 0.0
         self._lock = Lock()  # protege o estado e serializa o load frio (single-flight)
         self._refreshing = False  # garante um único refresh em background por vez
+        # Sobe a cada `invalidate()`: um refresh que começou ANTES não pode gravar por cima
+        # (leu a fonte antiga — ex.: divisão/trigrama recém-salvo pelo gestor ficaria de fora).
+        self._geracao = 0
 
     def get_or_load(self, loader: Callable[[], T]) -> T:
         """Valor corrente sem esperar a rede quando já há cache.
@@ -55,9 +58,9 @@ class TTLCache(Generic[T]):
         if self._refreshing:
             return
         self._refreshing = True
-        Thread(target=self._refresh, args=(loader,), daemon=True).start()
+        Thread(target=self._refresh, args=(loader, self._geracao), daemon=True).start()
 
-    def _refresh(self, loader: Callable[[], T]) -> None:
+    def _refresh(self, loader: Callable[[], T], geracao: int) -> None:
         try:
             value = loader()
         except Exception:
@@ -69,11 +72,13 @@ class TTLCache(Generic[T]):
                 self._refreshing = False
             return
         with self._lock:
-            self._value = value
-            self._expires_at = time.monotonic() + self._ttl
+            if geracao == self._geracao:
+                self._value = value
+                self._expires_at = time.monotonic() + self._ttl
             self._refreshing = False
 
     def invalidate(self) -> None:
         with self._lock:
             self._value = None
             self._expires_at = 0.0
+            self._geracao += 1

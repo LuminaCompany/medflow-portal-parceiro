@@ -9,7 +9,9 @@ from collections import defaultdict
 from datetime import date
 
 from app.domain.datas import hoje as hoje_operacao
-from app.domain.models import Pendencia, Solicitacao
+from app.domain.divisao import DivisaoSalva, reparte, resolve
+from app.domain.models import ParteDivisao, Pendencia, Solicitacao
+from app.domain.regras_contratante import antes_do_corte, siglas_unidade
 from app.domain.status import status, status_label
 from app.sheets.parser import (
     ParsedSolicitacao,
@@ -108,7 +110,11 @@ def _para_solicitacao(item: ParsedSolicitacao, hoje: date, codigo: str) -> Solic
     )
 
 
-def _para_pendencia(item: ParsedSolicitacao, motivos: list[str]) -> Pendencia:
+def _para_pendencia(
+    item: ParsedSolicitacao,
+    motivos: list[str],
+    divisao: list[ParteDivisao] | None = None,
+) -> Pendencia:
     # Pendências não entram na sequência gerada (feature 009): identifica-se pela linha do sheet.
     return Pendencia(
         codigo=f"(linha {item.linha_origem})",
@@ -119,6 +125,9 @@ def _para_pendencia(item: ParsedSolicitacao, motivos: list[str]) -> Pendencia:
         data_vencimento=item.data_vencimento,
         motivos=motivos,
         linha_origem=item.linha_origem,
+        obs=item.obs,
+        codigo_origem=item.codigo,
+        divisao=divisao,
     )
 
 
@@ -140,7 +149,8 @@ def _numera_e_constroi(
 
     saida: list[Solicitacao] = []
     for contratante, grupo in por_contratante.items():
-        grupo.sort(key=lambda i: (i.data_pedido, i.linha_origem))
+        # `parte` ordena as fatias de uma linha repartida por unidade (feature 014).
+        grupo.sort(key=lambda i: (i.data_pedido, i.linha_origem, i.parte))
         trigrama = trigrama_efetivo(contratante, trigramas.get(contratante))
         for sequencia, item in enumerate(grupo, start=1):
             saida.append(_para_solicitacao(item, hoje, formatar_codigo(trigrama, sequencia)))
@@ -152,18 +162,41 @@ def particiona(
     cadastro: dict[str, str],
     hoje: date | None = None,
     trigramas: dict[str, str] | None = None,
+    divisoes: dict[tuple[str, str], DivisaoSalva] | None = None,
 ) -> tuple[list[Solicitacao], list[Pendencia]]:
     """Particiona normalizados em (válidas, pendências).
 
     `cadastro`: mapa cliente→contratante (verdade do vínculo). `trigramas`: overrides de
-    prefixo por Contratante (feature 009; vazio = usa o padrão de 3 letras). Toda tela usa
-    `validas`; `/api/admin/pendencias` usa `pendencias`.
+    prefixo por Contratante (feature 009; vazio = usa o padrão de 3 letras). `divisoes`:
+    divisões por unidade salvas pelo gestor, chave `(contratante, código de origem)` (feature
+    014). Toda tela usa `validas`; `/api/admin/pendencias` usa `pendencias`.
     """
     hoje = hoje or hoje_operacao()
+    divisoes = divisoes or {}
     validos: list[ParsedSolicitacao] = []
     pendencias: list[Pendencia] = []
     for item in itens:
         motivos = _motivos(item, cadastro)
+        if antes_do_corte(item.contratante, item.data_vencimento):
+            # Legado anterior ao corte da Contratante (feature 014): o parceiro não o vê e o
+            # gestor mantém só o histórico válido — pendência antiga não é acionável, some.
+            if not motivos:
+                validos.append(item)
+            continue
+        siglas = siglas_unidade(item.contratante)
+        if siglas is not None and motivos == [MOTIVO_UNIDADE_AUSENTE]:
+            # Unidade vazia numa Contratante que paga por unidade (AH): reparte pela OBS ou pela
+            # divisão salva do gestor; sem certeza, vira pendência de divisão (feature 014).
+            assert item.valor is not None  # sem motivo de valor ⇒ valor presente e > 0
+            chave = (item.contratante or "", item.codigo or "")
+            res = resolve(item.obs, item.valor, siglas, divisoes.get(chave))
+            if res.partes is not None:
+                validos.extend(reparte(item, res.partes))
+            else:
+                pendencias.append(
+                    _para_pendencia(item, [res.motivo or ""], divisao=list(res.sugestao))
+                )
+            continue
         if motivos:
             pendencias.append(_para_pendencia(item, motivos))
         else:

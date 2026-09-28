@@ -72,6 +72,8 @@ class ParsedSolicitacao:
     obs: str | None = None
     agio_base: Decimal | None = None
     cashback: Decimal = field(default_factory=lambda: Decimal("0"))
+    # Feature 014: nº da fatia quando a linha foi repartida por unidade (1..N); 0 = linha inteira.
+    parte: int = 0
     # Erros estruturais de parsing (ex.: valor presente mas ilegível) — viram motivos.
     parse_errors: list[str] = field(default_factory=list)
 

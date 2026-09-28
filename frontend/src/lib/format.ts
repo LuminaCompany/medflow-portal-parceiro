@@ -36,6 +36,32 @@ export function formatMoeda(valor: string | null | undefined): string {
   return BRL.format(n);
 }
 
+/**
+ * Valor digitado pelo usuário (pt-BR) → CENTAVOS inteiros (sem erro de float).
+ * Aceita "3.800,00", "3800", "3800,5", "R$ 3.800" e também "3800.50" (ponto decimal com 1–2
+ * casas). Vazio/ilegível → null.
+ */
+export function parseMoedaCentavos(texto: string): number | null {
+  let t = texto.replace(/R\$/gi, "").replace(/\s/g, "");
+  if (!t) return null;
+  if (t.includes(",")) {
+    t = t.replace(/\./g, "").replace(",", ".");
+  } else if (!/^\d+\.\d{1,2}$/.test(t)) {
+    t = t.replace(/\./g, ""); // ponto como milhar ("3.800")
+  }
+  if (!/^\d+(\.\d{1,2})?$/.test(t)) return null;
+  const [int, dec = ""] = t.split(".");
+  return Number(int) * 100 + Number(dec.padEnd(2, "0"));
+}
+
+/** Centavos → texto editável pt-BR ("380000" → "3.800,00"). */
+export function centavosParaTexto(centavos: number): string {
+  return (centavos / 100).toLocaleString("pt-BR", {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  });
+}
+
 /** "2025-12-30" → "30/12/2025". null/inválido → "—". */
 export function formatData(iso: string | null | undefined): string {
   if (!iso) return "—";

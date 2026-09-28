@@ -14,6 +14,7 @@ import { toast } from "sonner";
 
 import { StatCard } from "@/components/portal/StatCard";
 import { ErroCarregamento } from "@/components/portal/ErroCarregamento";
+import { FiltroGrupo } from "@/components/portal/FiltroGrupo";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Empty, EmptyDescription, EmptyHeader, EmptyMedia, EmptyTitle } from "@/components/ui/empty";
@@ -127,36 +128,6 @@ export default function FeedbacksPage() {
           )}
         </>
       )}
-    </div>
-  );
-}
-
-function FiltroGrupo({
-  valor,
-  onChange,
-  opcoes,
-}: {
-  valor: string;
-  onChange: (v: string) => void;
-  opcoes: { v: string; label: string }[];
-}) {
-  return (
-    <div className="inline-flex rounded-lg border bg-muted/30 p-0.5">
-      {opcoes.map((o) => (
-        <button
-          key={o.v}
-          type="button"
-          onClick={() => onChange(o.v)}
-          className={cn(
-            "rounded-md px-3 py-1.5 text-sm font-medium transition-colors",
-            valor === o.v
-              ? "bg-background text-foreground shadow-xs"
-              : "text-muted-foreground hover:text-foreground",
-          )}
-        >
-          {o.label}
-        </button>
-      ))}
     </div>
   );
 }

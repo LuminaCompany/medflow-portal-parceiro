@@ -18,6 +18,7 @@ from app.config import get_settings
 from app.routers import (
     auth,
     conta,
+    divisoes,
     feedbacks,
     filtros,
     overview,
@@ -113,6 +114,7 @@ app.include_router(solicitacoes.router)
 app.include_router(overview.router)
 app.include_router(partners.router)
 app.include_router(pendencias.router)
+app.include_router(divisoes.router)
 app.include_router(filtros.router)
 app.include_router(pagamentos.router)
 app.include_router(feedbacks.router)

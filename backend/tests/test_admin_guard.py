@@ -32,6 +32,8 @@ def test_parceiro_recebe_403_em_admin_parceiros():
         client.get("/api/admin/parceiros"),
         client.post("/api/admin/parceiros", json={}),
         client.get("/api/admin/pendencias"),
+        client.get("/api/admin/divisoes"),
+        client.put("/api/admin/divisoes/1", json={"partes": []}),
     ]
     for resp in casos:
         assert resp.status_code == 403

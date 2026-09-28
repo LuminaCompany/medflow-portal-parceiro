@@ -6,9 +6,11 @@ explicitamente autorizada por papel).
 """
 
 from collections.abc import Iterable
+from datetime import date
 from typing import TypeVar
 
 from app.domain.models import AppUser
+from app.domain.regras_contratante import vencimento_inicio
 
 ROLE_GESTOR = "gestor"
 ROLE_PARCEIRO = "parceiro"
@@ -32,6 +34,8 @@ def filtra_por_escopo(itens: Iterable[T], user: AppUser) -> list[T]:
     - Parceiro sem `contratante` → nenhuma linha.
     - `unidades is None` (nunca configurado) → sem restrição de unidade (back-compat).
     - `unidades == []` (allowlist explícita vazia) → nenhuma linha.
+    - Contratante com corte de vencimento (feature 014, ex.: AH a partir de 05/10/2026) → só
+      itens com `data_vencimento` ≥ corte (sem data → fora).
     """
     itens_lista = list(itens)
     if is_gestor(user):
@@ -40,6 +44,13 @@ def filtra_por_escopo(itens: Iterable[T], user: AppUser) -> list[T]:
         return []
     alvo = user.contratante.strip()
     do_contratante = [it for it in itens_lista if getattr(it, "contratante", None) == alvo]
+    corte = vencimento_inicio(alvo)
+    if corte is not None:
+        do_contratante = [
+            it
+            for it in do_contratante
+            if (getattr(it, "data_vencimento", None) or date.min) >= corte
+        ]
     if user.unidades is None:
         return do_contratante
     permitidas = set(user.unidades)

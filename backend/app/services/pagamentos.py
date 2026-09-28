@@ -21,6 +21,7 @@ from supabase import Client
 
 from app.domain.lotes import totais_do_lote
 from app.domain.models import Solicitacao
+from app.domain.regras_contratante import antes_do_corte
 from app.domain.status import is_pending
 from app.services.serialize import money_str
 
@@ -125,10 +126,14 @@ def monta_visao_gestor(
     cores = cores or {}
 
     # Pendência atual por contratante → lote (unidade, data de vencimento). Fonte: sheet.
+    # Lote anterior ao corte da Contratante (feature 014) fica fora: o parceiro não o vê, logo
+    # nunca vai avisá-lo — não é "falta aviso".
     pend: dict[str, dict[tuple[str, str], Decimal]] = defaultdict(
         lambda: defaultdict(lambda: Decimal("0"))
     )
     for s in validas:
+        if antes_do_corte(s.contratante, s.data_vencimento):
+            continue
         if s.unidade and is_pending(s.status):
             pend[s.contratante][(s.unidade, s.data_vencimento.isoformat())] += s.valor
 

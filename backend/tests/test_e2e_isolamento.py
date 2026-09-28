@@ -242,6 +242,7 @@ ENDPOINTS_GESTOR_ONLY = [
     "/api/admin/contratantes",
     "/api/admin/unidades",
     "/api/admin/pendencias",
+    "/api/admin/divisoes",  # feature 014: divisão por unidade (gestor-only)
     "/api/feedbacks",
 ]
 

@@ -68,7 +68,9 @@ def serializa_medico(m: Medico) -> dict:
     }
 
 
-def serializa_pendencia(p: Pendencia) -> dict:
+def serializa_pendencia(p: Pendencia, unidades_opcoes: list[str] | None = None) -> dict:
+    """`divisao` só vem nas pendências de divisão por unidade (feature 014): sugestão lida da
+    OBS + unidades que o gestor pode escolher no editor."""
     return {
         "codigo": p.codigo,
         "cliente": p.cliente,
@@ -78,4 +80,14 @@ def serializa_pendencia(p: Pendencia) -> dict:
         "data_vencimento": p.data_vencimento.isoformat() if p.data_vencimento else None,
         "linha_origem": p.linha_origem,
         "motivos": p.motivos,
+        "obs": p.obs,
+        "codigo_origem": p.codigo_origem,
+        "divisao": (
+            {
+                "sugerida": [{"unidade": d.unidade, "valor": _money(d.valor)} for d in p.divisao],
+                "unidades_opcoes": unidades_opcoes or [],
+            }
+            if p.divisao is not None
+            else None
+        ),
     }

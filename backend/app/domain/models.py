@@ -57,6 +57,16 @@ class Medico(BaseModel):
     ambiguo: bool = False  # nome repetido na base → PII omitida (possível homônimo)
 
 
+class ParteDivisao(BaseModel):
+    """Fatia de uma antecipação repartida por Unidade (feature 014). `valor` None = unidade
+    lida na OBS mas sem valor (só aparece na sugestão ao gestor)."""
+
+    model_config = ConfigDict(frozen=True)
+
+    unidade: str
+    valor: Decimal | None = None
+
+
 class Pendencia(BaseModel):
     """Solicitação reprovada na validação (quarentena gestor-only). data-model §6."""
 
@@ -68,6 +78,11 @@ class Pendencia(BaseModel):
     data_vencimento: date | None = None
     motivos: list[str]
     linha_origem: int
+    obs: str | None = None
+    codigo_origem: str | None = None  # coluna A do sheet (código do CRM) — chave da divisão
+    # Feature 014: preenchido ⇒ pendência de DIVISÃO POR UNIDADE (o gestor informa as unidades
+    # e valores no portal). A lista é a sugestão lida da OBS (pode vir vazia). None = comum.
+    divisao: list[ParteDivisao] | None = None
 
 
 class Parceiro(BaseModel):

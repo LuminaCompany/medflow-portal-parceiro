@@ -264,4 +264,35 @@ export interface Pendencia {
   data_vencimento: string | null;
   linha_origem: number;
   motivos: string[];
+  obs?: string | null;
+  /** Coluna A do sheet (código do CRM) — chave da divisão salva (feature 014). */
+  codigo_origem?: string | null;
+  /** Preenchido ⇒ pendência de DIVISÃO POR UNIDADE (A.H.): o gestor informa unidades/valores. */
+  divisao?: DivisaoPendente | null;
+}
+
+/** Fatia de uma antecipação repartida por unidade. `valor` null = lida na OBS sem valor. */
+export interface ParteDivisao {
+  unidade: string;
+  valor: string | null;
+}
+
+export interface DivisaoPendente {
+  /** Sugestão lida da OBS (pode vir vazia) — pré-preenche o editor. */
+  sugerida: ParteDivisao[];
+  /** Unidades da própria Contratante que o gestor pode escolher. */
+  unidades_opcoes: string[];
+}
+
+/** Divisão já definida pelo gestor (GET /api/admin/divisoes). */
+export interface DivisaoSalva {
+  id: string;
+  contratante: string;
+  codigo_origem: string;
+  cliente: string | null;
+  valor_total: string;
+  partes: { unidade: string; valor: string }[];
+  criado_por: string | null;
+  created_at: string | null;
+  updated_at: string | null;
 }
