@@ -86,6 +86,7 @@ export function DataTable<T>({
   rowClassName,
   rowClickable,
   rowExpanded,
+  scrollClassName,
 }: {
   colunas: Coluna<T>[];
   itens: T[];
@@ -104,6 +105,9 @@ export function DataTable<T>({
   rowClickable?: (item: T) => boolean;
   /** `aria-expanded` da linha (linha-mãe de um grupo expansível). */
   rowExpanded?: (item: T) => boolean | undefined;
+  /** Limita a altura (ex.: `max-h-[60vh]`) e rola SÓ a tabela, com o cabeçalho fixo no topo.
+   *  `overscroll-contain` impede que a rolagem "vaze" para a página ao chegar no fim. */
+  scrollClassName?: string;
 }) {
   if (itens.length === 0) {
     return (
@@ -127,8 +131,13 @@ export function DataTable<T>({
 
   return (
     <div className="overflow-hidden rounded-xl bg-card ring-1 ring-foreground/10">
-      <Table>
-        <TableHeader>
+      <Table
+        containerClassName={
+          scrollClassName ? cn("overflow-y-auto overscroll-contain", scrollClassName) : undefined
+        }
+      >
+        {/* Cabeçalho fixo só quando a tabela rola sozinha; bg-card opaco atrás do tom muted. */}
+        <TableHeader className={cn(scrollClassName && "sticky top-0 z-10 bg-card")}>
           <TableRow className="border-border/70 bg-muted/40 hover:bg-muted/40">
             {colunas.map((c) => {
               const chave = c.sortKey ?? c.id;

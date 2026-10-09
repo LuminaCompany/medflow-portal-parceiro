@@ -85,6 +85,8 @@ export function TabelaLoteSolicitacoes({
             : undefined
       }
       vazio={{ titulo: "Nenhuma solicitação", descricao: "Este lote não tem solicitações." }}
+      // Lote longo rola dentro da própria caixa (cabeçalho fixo) em vez de esticar a página.
+      scrollClassName="max-h-[60vh]"
     />
   );
 }
