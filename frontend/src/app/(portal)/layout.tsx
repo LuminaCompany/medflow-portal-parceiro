@@ -94,22 +94,12 @@ export default function PortalLayout({ children }: { children: React.ReactNode }
   return (
     <TooltipProvider delayDuration={200}>
       <div className="relative flex min-h-svh bg-background">
-        {/* Atmosfera de fundo do conteúdo — brilho roxo discreto */}
-        <div
-          aria-hidden
-          className="pointer-events-none fixed inset-0 -z-10"
-          style={{
-            background:
-              "radial-gradient(80% 50% at 80% -5%, oklch(0.62 0.18 292 / 0.06), transparent 60%)",
-          }}
-        />
-
         <Sidebar items={itens} nome={me.nome_exibicao} papel={me.role} collapsed={collapsed} />
 
         {/* Navegação mobile */}
         <Sheet open={mobileOpen} onOpenChange={setMobileOpen}>
-          <SheetContent side="left" className="w-72 border-sidebar-border/60 bg-sidebar p-0 text-sidebar-foreground">
-            <SheetHeader className="border-b border-sidebar-border/50">
+          <SheetContent side="left" className="w-[300px] border-sidebar-border bg-sidebar p-0 text-sidebar-foreground">
+            <SheetHeader className="border-b border-sidebar-border px-6 py-6">
               <SheetTitle asChild>
                 <div className="relative h-8 w-[150px]">
                   <Image
@@ -122,7 +112,7 @@ export default function PortalLayout({ children }: { children: React.ReactNode }
                 </div>
               </SheetTitle>
             </SheetHeader>
-            <nav className="flex flex-col gap-1 p-3">
+            <nav className="flex flex-col gap-1 p-4">
               {itens.map((item) => {
                 const ativo = pathname.startsWith(item.href);
                 const Icon = item.icon;
@@ -132,34 +122,32 @@ export default function PortalLayout({ children }: { children: React.ReactNode }
                     href={item.href}
                     onClick={() => setMobileOpen(false)}
                     className={cn(
-                      "flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition-colors",
+                      "flex h-12 items-center gap-3 rounded-[10px] px-3 text-base transition-colors duration-150",
                       ativo
-                        ? "bg-sidebar-accent text-sidebar-accent-foreground"
-                        : "text-sidebar-foreground/75 hover:bg-sidebar-accent/60",
+                        ? "bg-sidebar-primary font-semibold text-sidebar-primary-foreground"
+                        : "font-medium text-sidebar-foreground/85 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground",
                     )}
                   >
-                    <Icon
-                      className={cn("size-[19px]", ativo ? "text-sidebar-primary" : "text-sidebar-foreground/75")}
-                    />
+                    <Icon className="size-5 shrink-0" strokeWidth={1.6} />
                     {item.label}
                   </Link>
                 );
               })}
 
-              <div className="mt-2 border-t border-sidebar-border/50 pt-3">
+              <div className="mt-3 border-t border-sidebar-border pt-3">
                 <FeedbackDialog
                   role={me.role}
                   trigger={
                     <button
                       type="button"
-                      className="flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-left text-sm font-medium text-sidebar-foreground/75 transition-colors hover:bg-sidebar-accent/60"
+                      className="flex w-full items-center gap-3 rounded-[10px] px-3 py-3 text-left text-sm font-medium text-sidebar-foreground/85 transition-colors duration-150 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
                     >
-                      <MessageSquarePlus className="size-[19px] shrink-0" />
+                      <MessageSquarePlus className="size-5 shrink-0" strokeWidth={1.6} />
                       Dar uma sugestão ou reportar um erro
                     </button>
                   }
                 />
-                <p className="px-3 pt-2 text-[11px] font-medium tracking-wide text-sidebar-foreground/50">
+                <p className="px-3 pt-2 text-[11px] font-semibold tracking-[0.1em] text-sidebar-foreground/70 uppercase">
                   Versão {APP_VERSION}
                 </p>
               </div>
@@ -175,8 +163,8 @@ export default function PortalLayout({ children }: { children: React.ReactNode }
             onOpenMobile={() => setMobileOpen(true)}
             gestor={me.role === "gestor"}
           />
-          <main className="flex-1 px-4 py-6 sm:px-6 lg:px-8">
-            <div className="mx-auto w-full max-w-[1240px]">
+          <main className="flex-1 px-4 pt-8 pb-16 sm:px-6 lg:px-10 lg:pt-10">
+            <div className="mx-auto w-full max-w-[1400px]">
               <PageTransition>{children}</PageTransition>
             </div>
           </main>
@@ -190,16 +178,18 @@ export default function PortalLayout({ children }: { children: React.ReactNode }
 function TelaErro({ mensagem }: { mensagem: string }) {
   return (
     <div className="grid min-h-svh place-items-center bg-background px-6">
-      <div className="flex max-w-md flex-col items-center gap-4 text-center">
-        <TriangleAlert className="size-10 text-warning" />
+      <div className="surface-card flex max-w-md flex-col items-center gap-5 px-8 py-10 text-center">
+        <span className="icon-tile">
+          <TriangleAlert />
+        </span>
         <div>
-          <p className="font-display text-lg font-bold">Não foi possível carregar o portal</p>
-          <p className="mt-1 text-sm text-muted-foreground">{mensagem}</p>
+          <p className="block-title">Não foi possível carregar o portal</p>
+          <p className="mt-2 text-[15px] leading-relaxed text-muted-foreground">{mensagem}</p>
         </div>
         <button
           type="button"
           onClick={() => window.location.reload()}
-          className="rounded-xl bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground transition-colors hover:bg-primary/90"
+          className="inline-flex h-12 items-center justify-center rounded-[10px] bg-primary px-7 text-[15px] font-semibold text-primary-foreground transition-colors duration-150 hover:bg-primary-hover"
         >
           Tentar de novo
         </button>
@@ -213,8 +203,8 @@ function TelaCarregando() {
     <div className="grid min-h-svh place-items-center bg-background">
       <div className="flex flex-col items-center gap-4">
         {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img src="/fav.icon.png" alt="MedFlow" className="size-12 animate-pulse" />
-        <span className="text-sm text-muted-foreground">Carregando o portal…</span>
+        <img src="/fav.icon.png" alt="Medflow" className="size-12 animate-pulse" />
+        <span className="eyebrow">Carregando o portal</span>
       </div>
     </div>
   );

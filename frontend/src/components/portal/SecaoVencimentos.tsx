@@ -84,13 +84,13 @@ export function SecaoVencimentos({
         <AccordionItem
           key={g.chave}
           value={g.chave}
-          className="overflow-hidden rounded-xl border bg-card not-last:border-b"
+          className="overflow-hidden rounded-card border bg-card not-last:border-b"
         >
-          <AccordionTrigger className="items-center px-4 hover:no-underline data-[state=open]:bg-muted/40">
+          <AccordionTrigger className="items-center px-4 hover:no-underline data-[state=open]:bg-accent/50">
             <div className="flex flex-1 flex-wrap items-center gap-3">
               <BadgeAtraso dias={g.dias} tone={tone} />
               <div className="flex flex-col">
-                <span className="font-display text-sm font-semibold">{g.unidade}</span>
+                <span className="text-sm font-semibold">{g.unidade}</span>
                 <span className="text-xs text-muted-foreground">
                   <span className="tabular-nums">{formatData(g.data)}</span> · {g.itens.length}{" "}
                   solicitaç{g.itens.length === 1 ? "ão" : "ões"}
@@ -100,12 +100,12 @@ export function SecaoVencimentos({
                   o lote perde o botão e o total sumia (sobravam os valores linha a linha). */}
               <div className="ml-auto flex items-center gap-2 pr-2 sm:gap-3">
                 {g.rebate > 0 ? (
-                  <span className="inline-flex items-center gap-1 rounded-full bg-success/12 px-2.5 py-1 text-xs font-semibold whitespace-nowrap text-success-ink">
+                  <span className="inline-flex items-center gap-1 rounded-full bg-success-subtle px-2.5 py-1 text-xs font-semibold whitespace-nowrap text-success-ink">
                     Rebate
                     <span className="tabular-nums">{formatMoeda(String(g.rebate))}</span>
                   </span>
                 ) : null}
-                <span className="font-display text-sm font-bold tabular-nums">
+                <span className="text-sm font-semibold tabular-nums">
                   {formatMoeda(String(g.total))}
                 </span>
               </div>
@@ -132,9 +132,9 @@ function BadgeAtraso({ dias, tone }: { dias: number; tone: Tone }) {
   }
   const cls =
     tone === "success"
-      ? "bg-success/12 text-success-ink"
+      ? "bg-success-subtle text-success-ink"
       : dias < 0
-        ? "bg-primary/10 text-primary"
+        ? "bg-accent text-primary"
         : "bg-muted text-muted-foreground";
   const texto =
     tone === "success"

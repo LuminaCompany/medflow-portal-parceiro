@@ -42,7 +42,7 @@ export function PagarUnidade({
 
   if (status === "verificado") {
     return (
-      <span className="inline-flex shrink-0 items-center gap-1.5 rounded-full bg-success/12 px-2.5 py-1 text-xs font-semibold text-success-ink">
+      <span className="inline-flex shrink-0 items-center gap-1.5 rounded-full bg-success-subtle px-2.5 py-1 text-xs font-semibold text-success-ink">
         <CircleCheckBig className="size-3.5" />
         Pagamento verificado
       </span>
@@ -108,7 +108,7 @@ function BotaoPagar({
       <div className="flex w-full items-center justify-end gap-2 sm:w-auto sm:shrink-0">
         {avisoRejeitado ? (
           <span
-            className="inline-flex items-center gap-1 rounded-full bg-destructive/10 px-2 py-0.5 text-xs font-medium text-danger-ink"
+            className="inline-flex items-center gap-1 rounded-full bg-danger-subtle px-2 py-0.5 text-xs font-medium text-danger-ink"
             title={avisoRejeitado.motivo_rejeicao ?? undefined}
           >
             <TriangleAlert className="size-3" />
@@ -124,7 +124,7 @@ function BotaoPagar({
       <Dialog open={aberto} onOpenChange={(o) => !enviando && setAberto(o)}>
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
-            <DialogTitle className="font-display text-lg font-bold">Confirmar pagamento</DialogTitle>
+            <DialogTitle>Confirmar pagamento</DialogTitle>
             <DialogDescription>
               Avise os gestores que este vencimento da unidade foi pago. Isso{" "}
               <strong>não</strong> altera o status automaticamente — os gestores verificam e
@@ -133,7 +133,7 @@ function BotaoPagar({
           </DialogHeader>
 
           {/* Valor + prazo em ênfase. Com serviço de rebate: Originação − Rebate = Valor a Pagar. */}
-          <div className="flex flex-col items-center gap-2 rounded-xl border bg-muted/30 p-5 text-center">
+          <div className="flex flex-col items-center gap-2 rounded-3xl bg-accent p-6 text-center">
             {mostrarRebate ? (
               <>
                 <div className="flex w-full flex-col gap-2">
@@ -145,7 +145,7 @@ function BotaoPagar({
                   </div>
                   <div className="flex items-center justify-between text-base">
                     <span className="font-medium text-success-ink">Rebate</span>
-                    <span className="font-bold tabular-nums text-success">
+                    <span className="font-semibold tabular-nums text-success">
                       − {formatMoeda(unidade.rebate)}
                     </span>
                   </div>
@@ -154,7 +154,7 @@ function BotaoPagar({
                 <p className="text-xs font-medium tracking-wide text-muted-foreground uppercase">
                   Valor a Pagar
                 </p>
-                <p className="font-display text-4xl font-bold tabular-nums text-primary">
+                <p className="text-4xl font-semibold tabular-nums text-primary">
                   {formatMoeda(unidade.valor_a_pagar)}
                 </p>
               </>
@@ -163,7 +163,7 @@ function BotaoPagar({
                 <p className="text-xs font-medium tracking-wide text-muted-foreground uppercase">
                   Valor deste vencimento
                 </p>
-                <p className="font-display text-4xl font-bold tabular-nums text-primary">
+                <p className="text-4xl font-semibold tabular-nums text-primary">
                   {formatMoeda(unidade.total_pendente)}
                 </p>
               </>
@@ -183,7 +183,7 @@ function BotaoPagar({
           </dl>
 
           {avisoRejeitado?.motivo_rejeicao ? (
-            <div className="rounded-lg bg-destructive/10 px-3 py-2 text-sm text-destructive ring-1 ring-destructive/20">
+            <div className="rounded-lg bg-danger-subtle px-3 py-2 text-sm text-danger-ink">
               <span className="font-semibold">Aviso anterior rejeitado:</span>{" "}
               {avisoRejeitado.motivo_rejeicao}
             </div>
@@ -235,7 +235,7 @@ function AvisoEnviado({
       <button
         type="button"
         onClick={() => setAberto(true)}
-        className="inline-flex shrink-0 items-center gap-1.5 rounded-full bg-warning/12 px-2.5 py-1 text-xs font-semibold text-warning-foreground transition-colors hover:bg-warning/20 focus-visible:ring-2 focus-visible:ring-ring/50 focus-visible:outline-none"
+        className="inline-flex shrink-0 items-center gap-1.5 rounded-full bg-warning-subtle px-2.5 py-1 text-xs font-semibold text-warning-foreground transition-colors hover:bg-warning/25 focus-visible:ring-2 focus-visible:ring-ring/50 focus-visible:outline-none"
       >
         <Clock className="size-3.5" />
         Em Análise
@@ -244,7 +244,7 @@ function AvisoEnviado({
       <Dialog open={aberto} onOpenChange={(o) => !cancelando && setAberto(o)}>
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
-            <DialogTitle className="font-display text-lg font-bold">Aviso de pagamento enviado</DialogTitle>
+            <DialogTitle>Aviso de pagamento enviado</DialogTitle>
             <DialogDescription>
               Aguardando verificação dos gestores. Você pode cancelar enquanto não for verificado.
             </DialogDescription>
@@ -268,7 +268,7 @@ function AvisoEnviado({
                   − {formatMoeda(aviso.rebate)}
                 </dd>
                 <dt className="font-semibold text-foreground">Valor a Pagar</dt>
-                <dd className="text-right font-bold tabular-nums text-primary">
+                <dd className="text-right font-semibold tabular-nums text-primary">
                   {formatMoeda(aviso.valor_a_pagar)}
                 </dd>
               </>

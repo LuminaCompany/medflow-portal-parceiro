@@ -15,7 +15,7 @@ export function DetalheSolicitacao({ detalhe }: { detalhe: SolicitacaoDetalhe })
 
       {/* Chip da solicitação aberta — o restante do painel detalha esta linha. */}
       <div className="flex items-center justify-between gap-3">
-        <span className="inline-flex items-center rounded-md bg-muted px-2 py-0.5 font-mono text-xs font-medium text-foreground/80 ring-1 ring-border/60">
+        <span className="inline-flex items-center rounded-md bg-accent px-2 py-0.5 text-xs font-semibold tracking-[0.02em] text-accent-foreground tabular-nums">
           {s.codigo}
         </span>
         <BadgeStatus status={s.status} />
@@ -64,16 +64,16 @@ export function DetalheSolicitacao({ detalhe }: { detalhe: SolicitacaoDetalhe })
 function HeroMedico({ nome, resumo: r }: { nome: string; resumo: ResumoMedico }) {
   const emAberto = r.n_a_pagar + r.n_atrasadas;
   return (
-    <div className="rounded-xl bg-gradient-to-br from-primary/10 to-primary/[0.02] p-4 ring-1 ring-primary/10">
+    <div className="rounded-3xl bg-accent p-5">
       <div className="flex items-center gap-1.5 text-[11px] font-semibold tracking-wider text-primary/80 uppercase">
         <Stethoscope className="size-3.5" />
         Médico
       </div>
-      <div className="mt-1 font-display text-lg font-bold leading-tight">{nome}</div>
+      <div className="mt-1 text-lg font-semibold leading-tight">{nome}</div>
 
       <div className="mt-3">
         <div className="text-xs text-muted-foreground">Total antecipado</div>
-        <div className="font-display text-3xl font-bold tabular-nums">{formatMoeda(r.valor_total)}</div>
+        <div className="text-3xl font-semibold tabular-nums">{formatMoeda(r.valor_total)}</div>
       </div>
 
       <div className="mt-4 grid grid-cols-2 gap-2">
@@ -115,9 +115,9 @@ function HeroMedico({ nome, resumo: r }: { nome: string; resumo: ResumoMedico })
 
 function Stat({ label, valor, alerta }: { label: string; valor: string; alerta?: string }) {
   return (
-    <div className="rounded-lg bg-background/60 p-2.5 ring-1 ring-border/60">
+    <div className="rounded-2xl border bg-card p-3.5">
       <div className="text-[11px] text-muted-foreground">{label}</div>
-      <div className="font-display text-lg font-bold tabular-nums">{valor}</div>
+      <div className="text-lg font-semibold tabular-nums">{valor}</div>
       {alerta ? <div className="text-[11px] font-medium text-destructive">{alerta}</div> : null}
     </div>
   );

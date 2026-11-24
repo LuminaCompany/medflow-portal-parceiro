@@ -3,18 +3,21 @@
 import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
-import { CircleDollarSign, ClipboardList, Loader2, Lock, Mail, ShieldCheck } from "lucide-react";
+import { CalendarClock, Eye, Loader2, Lock, LogIn, Mail, ShieldCheck, type LucideIcon } from "lucide-react";
 
 import { Input } from "@/components/ui/input";
 import { supabase } from "@/lib/supabase";
 
+// Benefícios em par "título curto + uma linha" (voz do site, §18).
 const DESTAQUES = [
-  { icon: ClipboardList, t: "Visão consolidada da sua carteira" },
-  { icon: CircleDollarSign, t: "Vencimentos e rebate sempre à mão" },
-  { icon: ShieldCheck, t: "Seus dados, isolados e seguros" },
+  { icon: Eye, t: "Clareza", d: "Visão consolidada da sua carteira." },
+  { icon: CalendarClock, t: "Organização", d: "Vencimentos e rebate sempre à mão." },
+  { icon: ShieldCheck, t: "Segurança", d: "Seus dados, isolados e protegidos." },
 ];
 
 // Login (Supabase). Roteamento por papel resolve no portal após autenticar (RF-002/004).
+// Visual = hero do site Medflow: gradiente horizontal roxo → roxo-claro, título grande com
+// ênfase por peso, eyebrow claro; formulário em superfície clara com botão primário 60px.
 export default function LoginPage() {
   const router = useRouter();
   const [email, setEmail] = useState("");
@@ -44,188 +47,184 @@ export default function LoginPage() {
   }
 
   return (
-    <main className="grid min-h-svh bg-white lg:grid-cols-[1.62fr_1fr]">
-      {/* Painel de marca (desktop) — gradiente ciano→roxo com ondas do "w" da marca */}
-      <aside className="relative hidden overflow-hidden px-16 py-14 lg:flex lg:flex-col">
-        <div
-          aria-hidden
-          className="absolute inset-0"
-          style={{
-            background:
-              "linear-gradient(150deg, oklch(0.72 0.13 205) 0%, oklch(0.55 0.19 285) 38%, oklch(0.5 0.21 295) 68%, oklch(0.44 0.19 300) 100%)",
-          }}
-        />
-        <svg
-          aria-hidden
-          className="absolute inset-0 size-full"
-          viewBox="0 0 1040 900"
-          preserveAspectRatio="xMidYMid slice"
-          fill="none"
-        >
-          <path
-            d="M-60 900 C 120 560, 210 150, 400 132 C 560 118, 585 470, 690 468 C 800 466, 880 250, 1100 120 L 1100 900 Z"
-            fill="#ffffff"
-            fillOpacity="0.10"
-          />
-          <path
-            d="M-60 900 C 140 700, 300 430, 470 424 C 620 419, 660 660, 760 656 C 870 652, 960 500, 1100 430 L 1100 900 Z"
-            fill="#ffffff"
-            fillOpacity="0.07"
-          />
-        </svg>
-
-        <div className="relative h-12 w-[210px]">
+    <main className="grid min-h-svh bg-background lg:grid-cols-[1.35fr_1fr]">
+      {/* Painel de marca (desktop) — hero do site */}
+      <aside
+        className="relative hidden flex-col overflow-hidden px-[clamp(40px,5vw,96px)] py-12 text-white lg:flex"
+        style={{ background: "var(--grad-hero)" }}
+      >
+        <div className="relative h-10 w-[169px]">
           <Image
             src="/logo-roxo.png"
             alt="medflow"
             fill
             priority
-            sizes="210px"
+            sizes="169px"
             className="object-contain object-left"
           />
         </div>
 
-        <div className="relative mt-auto">
-          <h2 className="font-display max-w-xl text-[2.6rem] leading-[1.15] font-extrabold text-white">
-            Transparência total na antecipação de recebíveis médicos.
-          </h2>
-          <p className="mt-5 max-w-lg text-lg leading-snug text-white/75">
+        <div className="my-auto max-w-[640px] pt-16 pb-10">
+          <p className="mb-[18px] flex items-center gap-3 text-[13px] font-semibold tracking-[0.16em] uppercase before:h-[3px] before:w-8 before:rounded-[2px] before:bg-current">
+            Portal do Parceiro
+          </p>
+          <h1 className="text-[clamp(44px,4.2vw,76px)] leading-[1.05] font-normal tracking-[-0.02em] text-white">
+            Seus recebíveis,
+            <br />
+            com transparência.
+            <br />
+            <strong className="font-bold">Agora!</strong>
+          </h1>
+          <p className="mt-6 max-w-[520px] text-[clamp(18px,1.3vw,22px)] leading-[1.55] text-white/[0.88]">
             Acompanhe solicitações, valores e vencimentos em um só lugar, com a clareza que a sua
             operação merece.
           </p>
-
-          <ul className="mt-12 flex items-center">
-            {DESTAQUES.map(({ icon: Icon, t }, i) => (
-              <li
-                key={t}
-                className={`flex items-center gap-2.5 pr-5 text-[13px] leading-tight text-white/90 xl:pr-6 xl:whitespace-nowrap ${
-                  i > 0 ? "border-l border-white/20 pl-5 xl:pl-6" : ""
-                }`}
-              >
-                <span className="grid size-9 shrink-0 place-items-center rounded-lg bg-white text-[oklch(0.5_0.21_295)]">
-                  <Icon className="size-4.5" />
-                </span>
-                {t}
-              </li>
-            ))}
-          </ul>
         </div>
+
+        <ul className="grid grid-cols-3 gap-4 xl:gap-6">
+          {DESTAQUES.map(({ icon: Icon, t, d }) => (
+            <li
+              key={t}
+              className="flex flex-col gap-4 rounded-[24px] border border-white/[0.38] p-5 xl:p-6"
+            >
+              <span className="grid size-12 place-items-center rounded-2xl border border-white/80">
+                <Icon className="size-6" strokeWidth={1.4} />
+              </span>
+              <span>
+                <span className="block text-[17px] leading-tight font-semibold tracking-[-0.01em]">
+                  {t}
+                </span>
+                <span className="mt-1.5 block text-sm leading-snug text-white/[0.88]">{d}</span>
+              </span>
+            </li>
+          ))}
+        </ul>
       </aside>
 
       {/* Formulário */}
-      <div className="relative flex items-center justify-center bg-white px-8 py-12">
-        <div className="w-full max-w-[26rem]">
-          {/* Marca (mobile) — logo branca sobre chip roxo */}
-          <div className="mb-8 flex lg:hidden">
-            <div
-              className="relative inline-flex items-center rounded-xl px-3.5 py-2.5"
-              style={{
-                background: "linear-gradient(135deg, oklch(0.58 0.2 292), oklch(0.45 0.16 288))",
-              }}
-            >
-              <div className="relative h-8 w-[150px]">
-                <Image
-                  src="/logo-roxo.png"
-                  alt="medflow"
-                  fill
-                  priority
-                  sizes="150px"
-                  className="object-contain object-left"
-                />
-              </div>
-            </div>
+      <div className="flex flex-col">
+        {/* Header roxo (mobile) — igual ao do site */}
+        <header className="flex h-[88px] items-center border-b border-white/[0.14] bg-[#7137D6] px-6 lg:hidden">
+          <div className="relative h-8 w-[120px]">
+            <Image
+              src="/logo-roxo.png"
+              alt="medflow"
+              fill
+              priority
+              sizes="120px"
+              className="object-contain object-left"
+            />
           </div>
+        </header>
 
-          <h1 className="font-display text-[2.15rem] leading-none font-extrabold tracking-tight text-[oklch(0.5_0.23_296)]">
-            Acesse o portal
-          </h1>
-          <p className="mt-2.5 text-[0.95rem] text-[oklch(0.62_0.13_293)]">
-            Portal do Parceiro, entre com suas credenciais.
-          </p>
+        <div className="flex flex-1 items-center justify-center px-6 py-16 sm:px-10">
+          <div className="w-full max-w-[440px]">
+            <p className="eyebrow mb-[18px]">Acesso restrito</p>
+            <h2 className="text-[clamp(40px,3.2vw,56px)] leading-[1.02] font-semibold tracking-[-0.045em] text-heading">
+              Acesse o portal
+            </h2>
+            <p className="mt-4 text-[17px] leading-[1.6] text-muted-foreground">
+              Entre com as credenciais enviadas pela equipe Medflow.
+            </p>
 
-          {aviso ? (
-            <div
-              role="status"
-              aria-live="polite"
-              className="mt-6 rounded-lg bg-warning/15 px-4 py-2.5 text-sm font-semibold text-warning-foreground"
-            >
-              {aviso}
-            </div>
-          ) : null}
-
-          <form onSubmit={onSubmit} className="mt-7">
-            {erro ? (
+            {aviso ? (
               <div
-                role="alert"
-                className="mb-6 rounded-lg bg-[oklch(0.68_0.16_28)] px-4 py-3 text-sm font-bold text-[oklch(0.28_0.11_28)]"
+                role="status"
+                aria-live="polite"
+                className="mt-8 rounded-[10px] bg-warning-subtle px-4 py-3 text-sm font-semibold text-warning-foreground"
               >
-                {erro}
+                {aviso}
               </div>
             ) : null}
 
-            <div className="flex flex-col gap-5">
-              <div>
-                <label
-                  htmlFor="email"
-                  className="mb-1.5 block text-sm text-[oklch(0.62_0.13_293)]"
-                >
-                  E-mail
-                </label>
-                <div className="relative">
-                  <Mail className="pointer-events-none absolute top-1/2 left-3.5 size-4.5 -translate-y-1/2 text-[oklch(0.5_0.21_295)]" />
-                  <Input
-                    id="email"
-                    type="email"
-                    autoComplete="email"
-                    required
-                    placeholder="voce@empresa.com"
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                    className="h-12 rounded-lg border-[oklch(0.72_0.13_293)] bg-[oklch(0.93_0.05_294)] pl-11 text-[0.95rem] text-[oklch(0.35_0.12_294)] placeholder:text-[oklch(0.58_0.1_293)] focus-visible:border-[oklch(0.5_0.21_295)] dark:bg-[oklch(0.93_0.05_294)]"
-                  />
-                </div>
-              </div>
+            <form onSubmit={onSubmit} className="mt-10 flex flex-col gap-6">
+              <Campo id="email" label="E-mail" icon={Mail}>
+                <Input
+                  id="email"
+                  type="email"
+                  autoComplete="email"
+                  required
+                  placeholder="voce@empresa.com"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  aria-invalid={erro ? true : undefined}
+                  className="h-14 pl-12 text-base"
+                />
+              </Campo>
 
-              <div>
-                <label
-                  htmlFor="senha"
-                  className="mb-1.5 block text-sm text-[oklch(0.62_0.13_293)]"
+              <Campo id="senha" label="Senha" icon={Lock}>
+                <Input
+                  id="senha"
+                  type="password"
+                  autoComplete="current-password"
+                  required
+                  placeholder="••••••••••••"
+                  value={senha}
+                  onChange={(e) => setSenha(e.target.value)}
+                  aria-invalid={erro ? true : undefined}
+                  aria-describedby={erro ? "login-erro" : undefined}
+                  className="h-14 pl-12 text-base"
+                />
+              </Campo>
+
+              {erro ? (
+                <p
+                  id="login-erro"
+                  role="alert"
+                  className="-mt-2 rounded-[10px] bg-danger-subtle px-4 py-3 text-sm font-semibold text-danger-ink"
                 >
-                  Senha
-                </label>
-                <div className="relative">
-                  <Lock className="pointer-events-none absolute top-1/2 left-3.5 size-4.5 -translate-y-1/2 text-[oklch(0.5_0.21_295)]" />
-                  <Input
-                    id="senha"
-                    type="password"
-                    autoComplete="current-password"
-                    required
-                    placeholder="••••••••••••"
-                    value={senha}
-                    onChange={(e) => setSenha(e.target.value)}
-                    className="h-12 rounded-lg border-[oklch(0.72_0.13_293)] bg-[oklch(0.93_0.05_294)] pl-11 text-[0.95rem] text-[oklch(0.35_0.12_294)] placeholder:text-[oklch(0.58_0.1_293)] focus-visible:border-[oklch(0.5_0.21_295)] dark:bg-[oklch(0.93_0.05_294)]"
-                  />
-                </div>
-              </div>
+                  {erro}
+                </p>
+              ) : null}
 
               <button
                 type="submit"
                 disabled={carregando}
-                className="mt-3 inline-flex h-12 w-full items-center justify-center gap-2 rounded-lg bg-[oklch(0.47_0.21_295)] text-sm font-bold tracking-[0.08em] text-white uppercase transition-colors hover:bg-[oklch(0.42_0.2_295)] disabled:opacity-70"
+                className="mt-2 inline-flex h-[60px] w-full items-center justify-center gap-3 rounded-[10px] bg-primary px-7 text-[17px] font-semibold text-primary-foreground transition-colors duration-150 ease-[ease] hover:bg-primary-hover focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring active:translate-y-px disabled:opacity-70"
               >
                 {carregando ? (
                   <>
-                    <Loader2 className="size-4 animate-spin" />
+                    <Loader2 className="size-[22px] animate-spin" strokeWidth={1.8} />
                     Entrando…
                   </>
                 ) : (
-                  "Entrar"
+                  <>
+                    <LogIn className="size-[22px]" strokeWidth={1.8} />
+                    Entrar
+                  </>
                 )}
               </button>
-            </div>
-          </form>
+            </form>
+          </div>
         </div>
       </div>
     </main>
+  );
+}
+
+function Campo({
+  id,
+  label,
+  icon: Icon,
+  children,
+}: {
+  id: string;
+  label: string;
+  icon: LucideIcon;
+  children: React.ReactNode;
+}) {
+  return (
+    <div className="flex flex-col gap-2">
+      <label htmlFor={id} className="text-sm font-medium text-strong">
+        {label}
+      </label>
+      <div className="relative">
+        <Icon
+          className="pointer-events-none absolute top-1/2 left-4 size-5 -translate-y-1/2 text-primary"
+          strokeWidth={1.6}
+        />
+        {children}
+      </div>
+    </div>
   );
 }

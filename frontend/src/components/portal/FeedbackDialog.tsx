@@ -91,7 +91,7 @@ export function FeedbackDialog({ role, trigger }: { role: Role; trigger: React.R
       <DialogTrigger asChild>{trigger}</DialogTrigger>
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
-          <DialogTitle className="font-display text-lg font-bold">
+          <DialogTitle>
             Dar uma sugestão ou reportar um erro
           </DialogTitle>
           <DialogDescription>
@@ -197,8 +197,8 @@ function ToggleTipo({
         "flex items-center justify-center gap-2 rounded-lg border px-3 py-2.5 text-sm font-medium transition-colors",
         "focus-visible:ring-2 focus-visible:ring-ring/50 focus-visible:outline-none",
         !ativo && "border-input text-muted-foreground hover:bg-accent/60",
-        ativo && tom === "brand" && "border-primary bg-primary/10 text-primary",
-        ativo && tom === "danger" && "border-destructive bg-destructive/10 text-danger-ink",
+        ativo && tom === "brand" && "border-primary bg-accent text-primary",
+        ativo && tom === "danger" && "border-destructive bg-danger-subtle text-danger-ink",
       )}
     >
       {icon}

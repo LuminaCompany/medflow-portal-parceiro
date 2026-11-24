@@ -55,10 +55,10 @@ export function TrocarSenhaObrigatoria({ nome }: { nome: string }) {
     <div className="grid min-h-svh place-items-center bg-background px-6 py-12">
       <div className="w-full max-w-sm">
         <div className="mb-6 flex flex-col items-center text-center">
-          <span className="mb-4 grid size-12 place-items-center rounded-2xl bg-primary/10 text-primary ring-1 ring-primary/20">
+          <span className="icon-tile mb-5">
             <ShieldCheck className="size-6" />
           </span>
-          <h1 className="text-2xl font-bold tracking-tight">Defina uma nova senha</h1>
+          <h1 className="page-title text-[36px]">Defina uma nova senha</h1>
           <p className="mt-1.5 text-sm text-muted-foreground">
             Olá{nome ? `, ${nome}` : ""}. Por segurança, crie uma nova senha antes de acessar o
             portal. A senha atual deixará de funcionar.
@@ -69,7 +69,7 @@ export function TrocarSenhaObrigatoria({ nome }: { nome: string }) {
           {erro ? (
             <div
               role="alert"
-              className="mb-5 rounded-lg bg-destructive/10 px-3.5 py-2.5 text-sm font-medium text-destructive ring-1 ring-destructive/20"
+              className="mb-5 rounded-lg bg-danger-subtle px-3.5 py-2.5 text-sm font-medium text-danger-ink"
             >
               {erro}
             </div>

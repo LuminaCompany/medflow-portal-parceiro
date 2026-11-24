@@ -36,7 +36,7 @@ export function AdicionarFiltro({ disponiveis, opcoesPorId, onAplicar }: Props) 
       }}
     >
       <PopoverTrigger asChild>
-        <Button variant="outline" size="sm" className="h-8 border-dashed" disabled={disponiveis.length === 0 && !campo}>
+        <Button variant="outline" size="sm" className="rounded-full border-dashed px-3.5" disabled={disponiveis.length === 0 && !campo}>
           <Plus className="size-3.5" />
           Adicionar filtro
         </Button>
@@ -77,7 +77,7 @@ export function AdicionarFiltro({ disponiveis, opcoesPorId, onAplicar }: Props) 
                     key={c.id}
                     type="button"
                     onClick={() => setCampo(c)}
-                    className="flex w-full items-center rounded-md px-2 py-1.5 text-left text-sm transition-colors hover:bg-muted"
+                    className="flex w-full items-center rounded-lg px-2.5 py-2 text-left text-sm transition-colors duration-150 hover:bg-accent hover:text-accent-foreground"
                   >
                     {c.label}
                   </button>

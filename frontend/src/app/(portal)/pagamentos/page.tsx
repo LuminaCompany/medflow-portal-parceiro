@@ -12,6 +12,7 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 
+import { PageHeader } from "@/components/portal/PageHeader";
 import { StatCard } from "@/components/portal/StatCard";
 import { BadgePrazo } from "@/components/portal/BadgePrazo";
 import { Badge } from "@/components/ui/badge";
@@ -62,18 +63,12 @@ export default function PagamentosPage() {
   const contratantes = data?.contratantes ?? [];
 
   return (
-    <div className="flex flex-col gap-6">
-      <div className="flex items-center gap-3">
-        <span className="grid size-11 place-items-center rounded-xl bg-primary/10 text-primary ring-1 ring-primary/15">
-          <HandCoins className="size-5" />
-        </span>
-        <div>
-          <h1 className="text-3xl font-bold tracking-tight">Pagamentos</h1>
-          <p className="mt-0.5 text-muted-foreground">
-            Avisos de pagamento enviados pelos parceiros. Verifique e atualize o status na planilha.
-          </p>
-        </div>
-      </div>
+    <div className="flex flex-col gap-8">
+      <PageHeader
+        eyebrow="Avisos dos parceiros"
+        titulo="Pagamentos"
+        descricao="Avisos de pagamento enviados pelos parceiros. Verifique e atualize o status na planilha."
+      />
 
       {carregando ? (
         <PagamentosSkeleton />
@@ -121,18 +116,18 @@ function SecaoContratante({ c, onMutate }: { c: ContratantePagamentos; onMutate:
           className="size-4 shrink-0 rounded-full ring-1 ring-border"
           style={{ background: c.cor ?? "#94a3b8" }}
         />
-        <CardTitle role="heading" aria-level={2} className="font-display text-lg font-bold">
+        <CardTitle role="heading" aria-level={2}>
           {c.contratante || "—"}
         </CardTitle>
         <div className="ml-auto flex flex-wrap items-center gap-1.5">
           {aguardando.length > 0 ? (
-            <Badge className="bg-warning/15 text-warning-foreground">
+            <Badge className="bg-warning-subtle text-warning-foreground">
               <Clock className="size-3" />
               {aguardando.length} em análise
             </Badge>
           ) : null}
           {verificadas.length > 0 ? (
-            <Badge className="bg-success/15 text-success-ink">
+            <Badge className="bg-success-subtle text-success-ink">
               <CircleCheckBig className="size-3" />
               {verificadas.length} verificada{verificadas.length === 1 ? "" : "s"}
             </Badge>
@@ -198,7 +193,7 @@ function Bloco({
 }) {
   return (
     <section className="flex flex-col gap-2.5">
-      <h3 className={`text-xs font-bold tracking-wide uppercase ${TOM_TITULO[tom]}`}>{titulo}</h3>
+      <h3 className={`text-xs font-semibold tracking-wide uppercase ${TOM_TITULO[tom]}`}>{titulo}</h3>
       {children}
     </section>
   );
@@ -208,7 +203,7 @@ function AvisoCard({ aviso, onMutate }: { aviso: PagamentoAviso; onMutate: () =>
   const verificado = aviso.status === "verificado";
   const codigos = aviso.solicitacao_codigos ?? [];
   return (
-    <div className="flex flex-col gap-3 rounded-xl border bg-card p-4">
+    <div className="flex flex-col gap-3 rounded-3xl border bg-card p-5">
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0">
           <div className="flex flex-wrap items-center gap-2">
@@ -228,7 +223,7 @@ function AvisoCard({ aviso, onMutate }: { aviso: PagamentoAviso; onMutate: () =>
               Orig. {formatMoeda(aviso.valor)} ·{" "}
               <span className="text-success">− {formatMoeda(aviso.rebate)}</span>
             </p>
-            <p className="font-display text-xl font-bold tabular-nums text-primary">
+            <p className="text-xl font-semibold tabular-nums text-primary">
               {formatMoeda(aviso.valor_a_pagar)}
             </p>
             <p className="text-[10px] font-medium tracking-wide text-muted-foreground uppercase">
@@ -236,7 +231,7 @@ function AvisoCard({ aviso, onMutate }: { aviso: PagamentoAviso; onMutate: () =>
             </p>
           </div>
         ) : (
-          <span className="shrink-0 text-right font-display text-xl font-bold tabular-nums text-primary">
+          <span className="shrink-0 text-right text-xl font-semibold tabular-nums text-primary">
             {formatMoeda(aviso.valor)}
           </span>
         )}
@@ -254,7 +249,7 @@ function AvisoCard({ aviso, onMutate }: { aviso: PagamentoAviso; onMutate: () =>
                 {codigos.map((cod) => (
                   <span
                     key={cod}
-                    className="rounded-md bg-muted px-1.5 py-0.5 font-mono text-[11px] text-foreground/80"
+                    className="rounded-md bg-accent px-1.5 py-0.5 text-[11px] font-semibold text-accent-foreground tabular-nums"
                   >
                     {cod}
                   </span>
@@ -334,7 +329,7 @@ function AcaoRejeitar({ aviso, onMutate }: { aviso: PagamentoAviso; onMutate: ()
       <Dialog open={aberto} onOpenChange={(o) => !enviando && setAberto(o)}>
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
-            <DialogTitle className="font-display text-lg font-bold">Rejeitar aviso</DialogTitle>
+            <DialogTitle>Rejeitar aviso</DialogTitle>
             <DialogDescription>
               {aviso.unidade} · venc. {formatData(aviso.data_vencimento)} ·{" "}
               {formatMoeda(Number(aviso.rebate) > 0 ? aviso.valor_a_pagar : aviso.valor)}. Informe o
@@ -414,11 +409,11 @@ function PagamentosSkeleton() {
     <div className="flex flex-col gap-6">
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
         {Array.from({ length: 3 }).map((_, i) => (
-          <Skeleton key={i} className="h-[116px] rounded-xl" />
+          <Skeleton key={i} className="h-[116px] rounded-card" />
         ))}
       </div>
-      <Skeleton className="h-56 rounded-xl" />
-      <Skeleton className="h-56 rounded-xl" />
+      <Skeleton className="h-56 rounded-card" />
+      <Skeleton className="h-56 rounded-card" />
     </div>
   );
 }

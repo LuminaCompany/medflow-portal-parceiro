@@ -111,7 +111,7 @@ export function DataTable<T>({
 }) {
   if (itens.length === 0) {
     return (
-      <Empty className="rounded-xl bg-card ring-1 ring-foreground/10">
+      <Empty className="rounded-card border border-solid bg-card">
         <EmptyHeader>
           <EmptyMedia variant="icon">
             <Inbox />
@@ -130,7 +130,7 @@ export function DataTable<T>({
   const grupos = calcGrupos(itens, groupBy);
 
   return (
-    <div className="overflow-hidden rounded-xl bg-card ring-1 ring-foreground/10">
+    <div className="overflow-hidden rounded-card border bg-card">
       <Table
         containerClassName={
           scrollClassName ? cn("overflow-y-auto overscroll-contain", scrollClassName) : undefined
@@ -138,7 +138,7 @@ export function DataTable<T>({
       >
         {/* Cabeçalho fixo só quando a tabela rola sozinha; bg-card opaco atrás do tom muted. */}
         <TableHeader className={cn(scrollClassName && "sticky top-0 z-10 bg-card")}>
-          <TableRow className="border-border/70 bg-muted/40 hover:bg-muted/40">
+          <TableRow className="bg-muted hover:bg-muted">
             {colunas.map((c) => {
               const chave = c.sortKey ?? c.id;
               const ativo = c.sortable && ordem?.col === chave;
@@ -211,7 +211,7 @@ export function DataTable<T>({
                   "border-border/60 transition-colors",
                   // Banda sutil unindo as linhas do mesmo médico; o tom alterna entre grupos
                   // vizinhos para que duas aglomerações coladas não se fundam.
-                  g != null && (g.ord % 2 === 0 ? "bg-primary/[0.05]" : "bg-muted/55"),
+                  g != null && (g.ord % 2 === 0 ? "bg-accent/50" : "bg-muted/55"),
                   acionar &&
                     "cursor-pointer hover:bg-accent/60 focus-visible:bg-accent/60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring/50",
                   rowClassName?.(item, i)

@@ -24,9 +24,9 @@ export function ErroCarregamento({
   className?: string;
 }) {
   return (
-    <Empty className={className ?? "rounded-xl border border-destructive/25 bg-destructive/[0.03]"}>
+    <Empty className={className ?? "rounded-card border border-solid border-destructive/25 bg-card"}>
       <EmptyHeader>
-        <EmptyMedia variant="icon" className="bg-destructive/10 text-destructive">
+        <EmptyMedia variant="icon" className="bg-danger-subtle text-danger-ink">
           <TriangleAlert />
         </EmptyMedia>
         <EmptyTitle>Não foi possível carregar</EmptyTitle>

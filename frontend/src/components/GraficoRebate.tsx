@@ -18,7 +18,7 @@ const config = {
 const compacto = new Intl.NumberFormat("pt-BR", { notation: "compact", maximumFractionDigits: 1 });
 
 // Série mensal do rebate (Σ cashback) — mesmo gráfico de barras da originação (GraficoMensal),
-// em verde (var(--chart-4)). Eixo Y compacto, tooltip em BRL. Cor vinda dos tokens.
+// em roxo-escuro (var(--chart-4)). Eixo Y compacto, tooltip em BRL. Cor vinda dos tokens.
 export function GraficoRebate({ serie }: { serie: { mes: string; rebate: string }[] }) {
   const data = serie.map((p) => ({ mes: formatMes(p.mes), rebate: Number(p.rebate) }));
 

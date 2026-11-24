@@ -61,11 +61,11 @@ export function SeletorTempoOverview({
   }
 
   return (
-    <div className="flex flex-col gap-3 rounded-xl bg-card p-4 ring-1 ring-foreground/10">
+    <div className="flex flex-col gap-4 rounded-card border bg-card p-6 max-sm:p-5">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div className={cn("flex items-center gap-3", periodoAtivo && "opacity-50")}>
           <Select value={String(ano)} onValueChange={(v) => onAno(Number(v))} disabled={periodoAtivo}>
-            <SelectTrigger className="h-9 w-[110px] tabular-nums" aria-label="Ano">
+            <SelectTrigger className="w-[110px] tabular-nums" aria-label="Ano">
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
@@ -95,7 +95,7 @@ export function SeletorTempoOverview({
               onChange={onIntervalo}
               numberOfMonths={2}
               placeholder="Período de originação"
-              className="h-9 min-w-[210px]"
+              className="h-10 min-w-[210px]"
               aria-label="Filtrar por período de originação"
             />
             {periodoAtivo ? (
@@ -103,7 +103,7 @@ export function SeletorTempoOverview({
                 type="button"
                 size="icon"
                 variant="ghost"
-                className="size-9 shrink-0 text-muted-foreground"
+                className="size-10 shrink-0 text-muted-foreground"
                 aria-label="Limpar período"
                 onClick={() => onIntervalo(INTERVALO_VAZIO)}
               >
@@ -117,7 +117,7 @@ export function SeletorTempoOverview({
           <button
             type="button"
             onClick={() => onMeses(TODOS_OS_MESES)}
-            className="text-xs font-medium text-primary hover:underline"
+            className="text-[13px] font-semibold text-primary underline-offset-4 hover:underline"
           >
             Selecionar todos
           </button>
@@ -131,7 +131,7 @@ export function SeletorTempoOverview({
       ) : null}
 
       {!periodoAtivo ? (
-        <div className="flex flex-wrap gap-1.5">
+        <div className="flex flex-wrap gap-2">
           {MESES.map((nome, i) => {
             const m = i + 1;
             const ativo = meses.includes(m);
@@ -142,10 +142,10 @@ export function SeletorTempoOverview({
                 aria-pressed={ativo}
                 onClick={() => alternaMes(m)}
                 className={cn(
-                  "rounded-lg px-2.5 py-1 text-xs font-medium ring-1 transition-colors",
+                  "h-8 rounded-full border px-3.5 text-[13px] font-semibold transition-colors duration-150 ease-[ease]",
                   ativo
-                    ? "bg-primary/10 text-primary ring-primary/25"
-                    : "bg-muted text-muted-foreground ring-border hover:text-foreground",
+                    ? "border-primary bg-primary text-primary-foreground hover:bg-primary-hover"
+                    : "border-border bg-card text-muted-foreground hover:border-primary hover:text-primary",
                 )}
               >
                 {nome}

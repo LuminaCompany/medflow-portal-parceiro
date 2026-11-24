@@ -14,6 +14,7 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 
+import { PageHeader } from "@/components/portal/PageHeader";
 import { EditorUnidades } from "@/components/portal/EditorUnidades";
 import { ColorPicker } from "@/components/portal/ColorPicker";
 import { Badge } from "@/components/ui/badge";
@@ -97,28 +98,27 @@ export default function ParceirosPage() {
   );
 
   return (
-    <div className="flex flex-col gap-5">
-      <div className="flex flex-wrap items-end justify-between gap-4">
-        <div>
-          <h1 className="text-3xl font-bold tracking-tight">Parceiros</h1>
-          <p className="mt-1 text-muted-foreground">
-            Cada parceiro é uma Contratante: defina a cor, as unidades visíveis e os logins de acesso.
-          </p>
-        </div>
-        <Button onClick={() => setCriando({})} size="lg" className="h-10">
-          <UserPlus />
-          Adicionar login
-        </Button>
-      </div>
+    <div className="flex flex-col gap-8">
+      <PageHeader
+        eyebrow="Gestão de acessos"
+        titulo="Parceiros"
+        descricao="Cada parceiro é uma Contratante: defina a cor, as unidades visíveis e os logins de acesso."
+        acoes={
+          <Button onClick={() => setCriando({})} size="lg">
+            <UserPlus />
+            Adicionar login
+          </Button>
+        }
+      />
 
       {carregando ? (
-        <div className="flex flex-col gap-3">
-          <Skeleton className="h-28 rounded-xl" />
-          <Skeleton className="h-28 rounded-xl" />
+        <div className="flex flex-col gap-4">
+          <Skeleton className="h-32 rounded-card" />
+          <Skeleton className="h-32 rounded-card" />
         </div>
       ) : partners.length === 0 ? (
-        <div className="rounded-xl border border-dashed p-12 text-center">
-          <p className="font-medium">Nenhuma contratante encontrada</p>
+        <div className="rounded-card border border-dashed bg-card p-12 text-center">
+          <p className="block-title">Nenhuma contratante encontrada</p>
           <p className="mt-1 text-sm text-muted-foreground">
             Verifique a conexão com o servidor e se a planilha tem solicitações válidas.
           </p>
@@ -188,7 +188,7 @@ function CartaoParceiro({
   const semLogin = parceiro.logins.length === 0;
   return (
     <li
-      className="flex flex-wrap items-center justify-between gap-4 rounded-xl border bg-card p-4"
+      className="flex flex-wrap items-center justify-between gap-4 rounded-card border bg-card p-6"
       style={{ borderLeft: `4px solid ${parceiro.cor ?? "#94a3b8"}` }}
     >
       <div className="flex min-w-0 items-center gap-3">
@@ -303,7 +303,7 @@ function DialogCriarLogin({
     <Dialog open={aberto} onOpenChange={(o) => !o && onFechar()}>
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
-          <DialogTitle className="font-display text-lg font-bold">Adicionar login</DialogTitle>
+          <DialogTitle>Adicionar login</DialogTitle>
           <DialogDescription>
             {contratanteFixa
               ? `Novo login para ${contratanteFixa}.`
@@ -322,7 +322,7 @@ function DialogCriarLogin({
                 Carregando contratantes…
               </div>
             ) : contratantes.length === 0 ? (
-              <div className="rounded-lg border border-destructive/30 bg-destructive/10 px-3 py-2 text-sm text-destructive">
+              <div className="rounded-lg bg-danger-subtle px-3 py-2 text-sm font-medium text-danger-ink">
                 Nenhuma contratante encontrada. Verifique a conexão com o servidor e se a planilha
                 tem solicitações válidas.
               </div>
@@ -453,7 +453,7 @@ function DialogConfig({
     <Dialog open={!!parceiro} onOpenChange={(o) => !o && onFechar()}>
       <DialogContent className="sm:max-w-3xl">
         <DialogHeader>
-          <DialogTitle className="font-display text-lg font-bold">
+          <DialogTitle>
             Editar {parceiro?.contratante}
           </DialogTitle>
           <DialogDescription>
@@ -570,7 +570,7 @@ function PainelLogins({
       <Sheet open={aberto} onOpenChange={(o) => !o && onFechar()}>
         <SheetContent className="w-full sm:max-w-md">
           <SheetHeader>
-            <SheetTitle className="font-display text-lg font-bold">
+            <SheetTitle>
               Logins · {parceiro?.contratante}
             </SheetTitle>
             <SheetDescription>
@@ -671,7 +671,7 @@ function DialogEditarLogin({
     <Dialog open={!!login} onOpenChange={(o) => !o && onFechar()}>
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
-          <DialogTitle className="font-display text-lg font-bold">Editar login</DialogTitle>
+          <DialogTitle>Editar login</DialogTitle>
           <DialogDescription>{login?.email}</DialogDescription>
         </DialogHeader>
         <FieldGroup className="gap-4">
@@ -732,7 +732,7 @@ function DialogRemoverLogin({
     <Dialog open={!!login} onOpenChange={(o) => !o && onFechar()}>
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
-          <DialogTitle className="font-display text-lg font-bold">Remover acesso</DialogTitle>
+          <DialogTitle>Remover acesso</DialogTitle>
           <DialogDescription>
             Remover o acesso de <strong className="text-foreground">{login?.nome_exibicao}</strong> (
             {login?.email})? A sessão dele será invalidada. Esta ação não pode ser desfeita.
@@ -754,7 +754,7 @@ function DialogRemoverLogin({
 
 function ErroBox({ msg }: { msg: string }) {
   return (
-    <div className="rounded-lg bg-destructive/10 px-3 py-2 text-sm font-medium text-destructive ring-1 ring-destructive/20">
+    <div className="rounded-lg bg-danger-subtle px-3 py-2 text-sm font-medium text-danger-ink">
       {msg}
     </div>
   );

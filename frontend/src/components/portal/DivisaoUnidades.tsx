@@ -73,16 +73,16 @@ export function SecaoDivisao({
   if (itens.length === 0 && salvasVisiveis.length === 0) return null;
 
   return (
-    <section className="flex flex-col gap-4 rounded-xl border border-warning/30 bg-warning/5 p-5">
+    <section className="flex flex-col gap-5 rounded-card border border-warning/40 bg-warning-subtle/50 p-6">
       <div className="flex items-start gap-3">
-        <span className="grid size-9 shrink-0 place-items-center rounded-lg bg-warning/15 text-warning ring-1 ring-warning/20">
+        <span className="icon-tile bg-warning-subtle text-warning-foreground">
           <Split className="size-4" />
         </span>
         <div className="min-w-0">
-          <h2 className="flex flex-wrap items-center gap-2 font-display text-lg font-bold">
+          <h2 className="flex flex-wrap items-center gap-2 text-lg font-semibold">
             Divisão por unidade
             {itens.length > 0 ? (
-              <Badge className="bg-warning/15 text-warning-foreground">
+              <Badge className="bg-warning-subtle text-warning-foreground">
                 {itens.length} pendente{itens.length === 1 ? "" : "s"}
               </Badge>
             ) : null}
@@ -187,7 +187,7 @@ function EditorDivisao({ pendencia, onSalvo }: { pendencia: Pendencia; onSalvo: 
     };
 
   return (
-    <div className="flex flex-col gap-3 rounded-xl border bg-card p-4">
+    <div className="flex flex-col gap-3 rounded-3xl border bg-card p-5">
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0">
           <p className="truncate font-semibold">{pendencia.cliente ?? "—"}</p>
@@ -197,7 +197,7 @@ function EditorDivisao({ pendencia, onSalvo }: { pendencia: Pendencia; onSalvo: 
           </p>
         </div>
         <div className="shrink-0 text-right">
-          <p className="font-display text-lg font-bold tabular-nums text-primary">
+          <p className="text-lg font-semibold tabular-nums text-primary">
             {formatMoeda(pendencia.valor)}
           </p>
           <p className="text-[10px] font-medium tracking-wide text-muted-foreground uppercase">
@@ -210,7 +210,7 @@ function EditorDivisao({ pendencia, onSalvo }: { pendencia: Pendencia; onSalvo: 
         {pendencia.motivos.map((m) => (
           <span
             key={m}
-            className="inline-flex items-center rounded-full bg-warning/15 px-2 py-0.5 font-medium text-warning-foreground"
+            className="inline-flex items-center rounded-full bg-warning-subtle px-2 py-0.5 font-medium text-warning-foreground"
           >
             {m}
           </span>
@@ -317,7 +317,7 @@ function DivisoesSalvas({ itens, onDesfeito }: { itens: DivisaoSalva[]; onDesfei
       <button
         type="button"
         onClick={() => setAberto((a) => !a)}
-        className="self-start text-xs font-bold tracking-wide text-muted-foreground uppercase hover:text-foreground"
+        className="self-start text-xs font-semibold tracking-wide text-muted-foreground uppercase hover:text-foreground"
         aria-expanded={aberto}
       >
         {aberto ? "▾" : "▸"} Divisões já definidas ({itens.length})
@@ -340,7 +340,7 @@ function DivisoesSalvas({ itens, onDesfeito }: { itens: DivisaoSalva[]; onDesfei
                   {d.partes.map((p) => (
                     <span
                       key={p.unidade}
-                      className="rounded-md bg-muted px-1.5 py-0.5 text-[11px] tabular-nums text-foreground/80"
+                      className="rounded-md bg-accent px-1.5 py-0.5 text-[11px] font-semibold tabular-nums text-accent-foreground"
                     >
                       {p.unidade} · {formatMoeda(p.valor)}
                     </span>

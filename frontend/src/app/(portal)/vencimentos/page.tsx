@@ -11,6 +11,7 @@ import {
   Wallet,
 } from "lucide-react";
 
+import { PageHeader } from "@/components/portal/PageHeader";
 import { BarraFiltros } from "@/components/filtros/BarraFiltros";
 import { BadgeStatus } from "@/components/BadgeStatus";
 import { DataTable, type Coluna } from "@/components/DataTable";
@@ -108,18 +109,12 @@ function VencimentosView() {
   }, [queryString, tentativa]);
 
   return (
-    <div className="flex flex-col gap-6">
-      <div className="flex items-center gap-3">
-        <span className="grid size-11 place-items-center rounded-xl bg-primary/10 text-primary ring-1 ring-primary/15">
-          <CalendarClock className="size-5" />
-        </span>
-        <div>
-          <h1 className="text-3xl font-bold tracking-tight">Vencimentos</h1>
-          <p className="mt-0.5 text-muted-foreground">
-            Acompanhe pagamentos pendentes, atrasados e já realizados.
-          </p>
-        </div>
-      </div>
+    <div className="flex flex-col gap-8">
+      <PageHeader
+        eyebrow="Agenda de pagamentos"
+        titulo="Vencimentos"
+        descricao="Acompanhe pagamentos pendentes, atrasados e já realizados."
+      />
 
       <BarraFiltros aba="vencimentos" papel={papel} />
 
@@ -319,16 +314,16 @@ function ContratanteLinha({ c, agrupar }: { c: ContratanteVencimentos; agrupar: 
   return (
     <AccordionItem
       value={c.contratante}
-      className="overflow-hidden rounded-xl border bg-card not-last:border-b"
+      className="overflow-hidden rounded-card border bg-card not-last:border-b"
     >
       {/* +50% de altura de linha (min-h ~60px) vs. ~40px anterior. */}
-      <AccordionTrigger className="min-h-[3.75rem] items-center px-4 py-3 hover:no-underline data-[state=open]:bg-muted/40">
+      <AccordionTrigger className="min-h-[3.75rem] items-center px-4 py-3 hover:no-underline data-[state=open]:bg-accent/50">
         <div className="flex min-w-0 flex-1 items-center gap-2 sm:gap-3">
           <span className="min-w-0 truncate text-sm font-medium">{c.contratante}</span>
           {c.tudo_pago ? (
             <>
               <div className="flex-1" />
-              <span className="inline-flex shrink-0 items-center gap-1.5 rounded-full bg-success/12 px-2.5 py-1 text-xs font-semibold text-success-ink">
+              <span className="inline-flex shrink-0 items-center gap-1.5 rounded-full bg-success-subtle px-2.5 py-1 text-xs font-semibold text-success-ink">
                 <CircleCheckBig className="size-3.5" />
                 Tudo pago
               </span>
@@ -381,7 +376,7 @@ function UnidadeLinhaParceiro({
   return (
     <AccordionItem
       value={chave}
-      className="overflow-hidden rounded-xl border bg-card not-last:border-b"
+      className="overflow-hidden rounded-card border bg-card not-last:border-b"
     >
       {/* Exportar + Trigger + controle "Pagar" como IRMÃOS (nunca <button> dentro de <button>).
           "Exportar" fica à ESQUERDA da barra; no desktop (sm+) ficam lado a lado, com o
@@ -394,13 +389,13 @@ function UnidadeLinhaParceiro({
         <div className="flex min-w-0 flex-1 items-center gap-2 pl-3 sm:pl-4 [&>*:last-child]:min-w-0 [&>*:last-child]:flex-1">
           {/* Exportar SÓ deste lote (unidade + vencimento) — modelo da planilha-mestre. */}
           <ExportarLote unidade={u.unidade} dataVencimento={u.data_vencimento} />
-          <AccordionTrigger className="min-h-[3.75rem] flex-1 items-center px-2 py-3 hover:no-underline data-[state=open]:bg-muted/40">
+          <AccordionTrigger className="min-h-[3.75rem] flex-1 items-center px-2 py-3 hover:no-underline data-[state=open]:bg-accent/50">
             <div className="flex min-w-0 flex-1 items-center gap-2 sm:gap-3">
               <span className="min-w-0 truncate text-sm font-medium">{u.unidade}</span>
               {u.tudo_pago ? (
                 <>
                   <div className="flex-1" />
-                  <span className="inline-flex shrink-0 items-center gap-1.5 rounded-full bg-success/12 px-2.5 py-1 text-xs font-semibold text-success-ink">
+                  <span className="inline-flex shrink-0 items-center gap-1.5 rounded-full bg-success-subtle px-2.5 py-1 text-xs font-semibold text-success-ink">
                     <CircleCheckBig className="size-3.5" />
                     Tudo pago
                   </span>
@@ -475,6 +470,11 @@ const colsSolicUnidade: Coluna<Solicitacao>[] = [
   },
 ];
 
+// Largura da janela de solicitações: cabe as 6 colunas (Código…Status) sem rolagem horizontal
+// (~64rem), mas nunca passa da tela (viewport − 2rem de margem). Telas menores rolam a tabela.
+const CLASSE_JANELA_SOLIC =
+  "flex max-h-[85vh] flex-col gap-0 overflow-hidden p-0 sm:max-w-[min(64rem,calc(100vw-2rem))]";
+
 // Clicar na unidade abre uma janela grande com TODAS as solicitações (scrollável).
 // "Exportar" (à esquerda) é IRMÃO do gatilho do diálogo — exporta a unidade inteira.
 function UnidadeRow({ u, contratante }: { u: UnidadeVencimentos; contratante: string }) {
@@ -497,7 +497,7 @@ function UnidadeRow({ u, contratante }: { u: UnidadeVencimentos; contratante: st
             <ChevronRight className="size-4 shrink-0 text-muted-foreground" />
           </button>
         </DialogTrigger>
-        <DialogContent className="flex max-h-[85vh] flex-col gap-0 overflow-hidden p-0 sm:max-w-3xl">
+        <DialogContent className={CLASSE_JANELA_SOLIC}>
           <DialogHeader className="shrink-0 border-b p-4">
             <div className="flex items-center gap-3 pr-8">
               <DialogTitle className="truncate">{u.unidade}</DialogTitle>
@@ -540,7 +540,7 @@ function LoteRow({ lote, contratante }: { lote: LoteGestor; contratante: string 
             <ChevronRight className="size-4 shrink-0 text-muted-foreground" />
           </button>
         </DialogTrigger>
-        <DialogContent className="flex max-h-[85vh] flex-col gap-0 overflow-hidden p-0 sm:max-w-3xl">
+        <DialogContent className={CLASSE_JANELA_SOLIC}>
           <DialogHeader className="shrink-0 border-b p-4">
             <div className="flex flex-wrap items-center gap-3 pr-8">
               <DialogTitle className="truncate">{lote.unidade}</DialogTitle>
@@ -577,7 +577,7 @@ function Secao({
     <Card className="p-4 sm:p-5">
       <CardHeader className="flex-row items-start justify-between gap-3 px-0">
         <div>
-          <CardTitle role="heading" aria-level={2} className="font-display text-base font-bold">
+          <CardTitle role="heading" aria-level={2} className="block-title text-[17px]">
             {titulo}
           </CardTitle>
           {descricao ? <CardDescription>{descricao}</CardDescription> : null}
@@ -608,11 +608,11 @@ function VencimentosSkeleton() {
     <div className="flex flex-col gap-6">
       <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
         {Array.from({ length: 4 }).map((_, i) => (
-          <Skeleton key={i} className="h-[116px] rounded-xl" />
+          <Skeleton key={i} className="h-[116px] rounded-card" />
         ))}
       </div>
-      <Skeleton className="h-48 rounded-xl" />
-      <Skeleton className="h-48 rounded-xl" />
+      <Skeleton className="h-48 rounded-card" />
+      <Skeleton className="h-48 rounded-card" />
     </div>
   );
 }

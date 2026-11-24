@@ -271,7 +271,7 @@ function ToggleFormato({
       className={cn(
         "flex flex-col items-center gap-0.5 rounded-lg border px-3 py-2 transition-colors",
         "focus-visible:ring-2 focus-visible:ring-ring/50 focus-visible:outline-none",
-        ativo ? "border-primary bg-primary/10 text-primary" : "border-input hover:bg-accent/60",
+        ativo ? "border-primary bg-accent text-primary" : "border-input hover:bg-accent/60",
       )}
     >
       <span className="flex items-center gap-2 text-sm font-medium">

@@ -12,6 +12,7 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 
+import { PageHeader } from "@/components/portal/PageHeader";
 import { StatCard } from "@/components/portal/StatCard";
 import { ErroCarregamento } from "@/components/portal/ErroCarregamento";
 import { FiltroGrupo } from "@/components/portal/FiltroGrupo";
@@ -59,18 +60,12 @@ export default function FeedbacksPage() {
   }, [data, fStatus, fTipo]);
 
   return (
-    <div className="flex flex-col gap-6">
-      <div className="flex items-center gap-3">
-        <span className="grid size-11 place-items-center rounded-xl bg-primary/10 text-primary ring-1 ring-primary/15">
-          <MessageSquare className="size-5" />
-        </span>
-        <div>
-          <h1 className="text-3xl font-bold tracking-tight">Feedbacks</h1>
-          <p className="mt-0.5 text-muted-foreground">
-            Sugestões e erros reportados pelos parceiros e gestores. Marque como feito ao concluir.
-          </p>
-        </div>
-      </div>
+    <div className="flex flex-col gap-8">
+      <PageHeader
+        eyebrow="Melhoria contínua"
+        titulo="Feedbacks"
+        descricao="Sugestões e erros reportados pelos parceiros e gestores. Marque como feito ao concluir."
+      />
 
       {carregando ? (
         <FeedbacksSkeleton />
@@ -140,14 +135,14 @@ function FeedbackCard({ feedback: f, onMutate }: { feedback: Feedback; onMutate:
   return (
     <div
       className={cn(
-        "flex flex-col gap-3 rounded-xl border bg-card p-4 transition-colors",
+        "flex flex-col gap-3 rounded-card border bg-card p-6 transition-colors duration-150",
         feito && "opacity-75",
       )}
     >
       <div className="flex flex-wrap items-center gap-2">
         <Badge
           className={cn(
-            ehBug ? "bg-destructive/12 text-danger-ink" : "bg-primary/12 text-primary",
+            ehBug ? "bg-danger-subtle text-danger-ink" : "bg-accent text-primary",
           )}
         >
           {ehBug ? <Bug className="size-3" /> : <Lightbulb className="size-3" />}
@@ -155,7 +150,7 @@ function FeedbackCard({ feedback: f, onMutate }: { feedback: Feedback; onMutate:
         </Badge>
         <Badge variant="outline">{f.aba}</Badge>
         {feito ? (
-          <Badge className="bg-success/15 text-success-ink">
+          <Badge className="bg-success-subtle text-success-ink">
             <CircleCheckBig className="size-3" />
             Concluído
           </Badge>
@@ -236,11 +231,11 @@ function FeedbacksSkeleton() {
     <div className="flex flex-col gap-6">
       <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
         {Array.from({ length: 4 }).map((_, i) => (
-          <Skeleton key={i} className="h-[116px] rounded-xl" />
+          <Skeleton key={i} className="h-[116px] rounded-card" />
         ))}
       </div>
-      <Skeleton className="h-40 rounded-xl" />
-      <Skeleton className="h-40 rounded-xl" />
+      <Skeleton className="h-40 rounded-card" />
+      <Skeleton className="h-40 rounded-card" />
     </div>
   );
 }

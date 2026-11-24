@@ -99,7 +99,7 @@ function EditorMulti({ campo, opcao, valorInicial, onAplicar }: Props) {
                 type="button"
                 onClick={() => toggle(v)}
                 className={cn(
-                  "flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-left text-sm transition-colors hover:bg-muted",
+                  "flex w-full items-center gap-2 rounded-lg px-2.5 py-2 text-left text-sm transition-colors duration-150 hover:bg-accent hover:text-accent-foreground",
                   ativo && "font-medium",
                 )}
               >

@@ -1,8 +1,9 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
-import { Search, TriangleAlert, UserRound } from "lucide-react";
+import { Search, UserRound } from "lucide-react";
 
+import { PageHeader } from "@/components/portal/PageHeader";
 import { DataTable, type Coluna } from "@/components/DataTable";
 import { SecaoDivisao } from "@/components/portal/DivisaoUnidades";
 import { ErroCarregamento } from "@/components/portal/ErroCarregamento";
@@ -156,7 +157,7 @@ export default function PendenciasPage() {
           {p.motivos.map((m, i) => (
             <span
               key={i}
-              className="inline-flex items-center rounded-full bg-warning/15 px-2 py-0.5 text-xs font-medium text-warning-foreground"
+              className="inline-flex items-center rounded-full bg-warning-subtle px-2 py-0.5 text-xs font-medium text-warning-foreground"
             >
               {m}
             </span>
@@ -167,20 +168,18 @@ export default function PendenciasPage() {
   ];
 
   return (
-    <div className="flex flex-col gap-5">
-      <div className="flex items-start gap-3">
-        <span className="grid size-11 place-items-center rounded-xl bg-warning/15 text-warning ring-1 ring-warning/20">
-          <TriangleAlert className="size-5" />
-        </span>
-        <div>
-          <h1 className="text-3xl font-bold tracking-tight">Pendências de Dados</h1>
-          <p className="mt-0.5 max-w-2xl text-muted-foreground">
+    <div className="flex flex-col gap-8">
+      <PageHeader
+        eyebrow="Qualidade dos dados"
+        titulo="Pendências de Dados"
+        descricao={
+          <>
             {itens.length} solicitaç{itens.length === 1 ? "ão" : "ões"} reprovada
             {itens.length === 1 ? "" : "s"} na validação da planilha. Corrija na fonte e elas
             voltam às telas normais automaticamente.
-          </p>
-        </div>
-      </div>
+          </>
+        }
+      />
 
       <div className="flex flex-wrap items-center gap-3">
         <div className="relative w-full sm:w-80">
@@ -207,7 +206,7 @@ export default function PendenciasPage() {
       </div>
 
       {carregando ? (
-        <Skeleton className="h-80 rounded-xl" />
+        <Skeleton className="h-80 rounded-card" />
       ) : erro ? (
         <ErroCarregamento onRetry={() => setTentativa((t) => t + 1)} mensagem={erro} />
       ) : (

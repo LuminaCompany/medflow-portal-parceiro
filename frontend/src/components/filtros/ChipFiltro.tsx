@@ -24,15 +24,15 @@ interface Props {
 export function ChipFiltro({ campo, valor, opcao, onAplicar, onRemove }: Props) {
   const [aberto, setAberto] = useState(false);
   return (
-    <div className="inline-flex items-center rounded-full border border-primary/30 bg-primary/[0.06] text-sm">
+    <div className="inline-flex items-center rounded-full border border-primary/25 bg-accent text-sm text-accent-foreground">
       <Popover open={aberto} onOpenChange={setAberto}>
         <PopoverTrigger
           className={cn(
-            "flex items-center gap-1.5 rounded-l-full py-1.5 pl-3 pr-2 font-medium transition-colors hover:bg-primary/10",
+            "flex items-center gap-1.5 rounded-l-full py-1.5 pr-2 pl-3.5 font-semibold transition-colors duration-150 hover:bg-lavanda-2",
           )}
           aria-label={`Editar filtro ${campo.label}`}
         >
-          <span className="text-muted-foreground">{campo.label}:</span>
+          <span className="font-medium text-accent-foreground/75">{campo.label}:</span>
           <span className="max-w-[160px] truncate">{resumoChip(campo, valor)}</span>
         </PopoverTrigger>
         <PopoverContent align="start" className="w-64">
@@ -52,7 +52,7 @@ export function ChipFiltro({ campo, valor, opcao, onAplicar, onRemove }: Props) 
         type="button"
         onClick={onRemove}
         aria-label={`Remover filtro ${campo.label}`}
-        className="grid size-7 place-items-center rounded-r-full text-muted-foreground transition-colors hover:bg-primary/10 hover:text-foreground"
+        className="grid size-7 place-items-center rounded-r-full text-accent-foreground/70 transition-colors duration-150 hover:bg-lavanda-2 hover:text-accent-foreground"
       >
         <X className="size-3.5" />
       </button>

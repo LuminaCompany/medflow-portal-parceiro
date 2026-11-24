@@ -63,22 +63,22 @@ export function AccountMenu({
       <DropdownMenu>
         <DropdownMenuTrigger
           className={cn(
-            "group flex w-full items-center gap-2.5 rounded-xl p-2 text-left",
-            "text-sidebar-foreground transition-colors hover:bg-sidebar-accent",
+            "group flex w-full items-center gap-3 rounded-[10px] p-2 text-left",
+            "text-sidebar-foreground transition-colors duration-150 hover:bg-sidebar-accent",
             "focus-visible:outline-2 focus-visible:outline-sidebar-ring",
             collapsed && "justify-center",
           )}
         >
-          <Avatar className="size-9 rounded-lg border border-sidebar-border/60">
-            <AvatarFallback className="rounded-lg bg-sidebar-primary/20 text-sm font-semibold text-sidebar-primary-foreground">
+          <Avatar className="size-10 rounded-[10px] after:hidden">
+            <AvatarFallback className="rounded-[10px] bg-sidebar-primary text-sm font-semibold text-sidebar-primary-foreground">
               {iniciais(nome)}
             </AvatarFallback>
           </Avatar>
           {!collapsed && (
             <>
               <span className="grid flex-1 leading-tight">
-                <span className="truncate text-sm font-medium">{nome}</span>
-                <span className="truncate text-xs text-sidebar-foreground/75">{papel}</span>
+                <span className="truncate text-sm font-semibold">{nome}</span>
+                <span className="truncate text-xs text-sidebar-foreground/80">{papel}</span>
               </span>
               <ChevronsUpDown className="size-4 shrink-0 text-sidebar-foreground/70" />
             </>
@@ -86,7 +86,7 @@ export function AccountMenu({
         </DropdownMenuTrigger>
         <DropdownMenuContent side="top" align="start" className="w-(--radix-dropdown-menu-trigger-width) min-w-56">
           <DropdownMenuLabel className="flex flex-col">
-            <span className="truncate font-medium">{nome}</span>
+            <span className="truncate font-semibold text-strong">{nome}</span>
             <span className="truncate text-xs font-normal text-muted-foreground">{papel}</span>
           </DropdownMenuLabel>
           <DropdownMenuSeparator />
@@ -156,7 +156,7 @@ function EditarNomeDialog({
     >
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
-          <DialogTitle className="font-display text-lg font-bold">Editar nome</DialogTitle>
+          <DialogTitle>Editar nome</DialogTitle>
           <DialogDescription>
             Este é o nome exibido no portal. Você pode alterá-lo quando quiser.
           </DialogDescription>

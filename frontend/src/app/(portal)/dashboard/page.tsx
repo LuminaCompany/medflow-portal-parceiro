@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { Suspense, useCallback, useEffect, useState } from "react";
 import {
-  ArrowRight,
+  ArrowUpRight,
   Banknote,
   CalendarClock,
   CircleCheckBig,
@@ -14,6 +14,8 @@ import {
 } from "lucide-react";
 
 import { BarraFiltros } from "@/components/filtros/BarraFiltros";
+import { PageHeader } from "@/components/portal/PageHeader";
+import { Segmentado } from "@/components/portal/Segmentado";
 import { StatCard } from "@/components/portal/StatCard";
 import { ErroCarregamento } from "@/components/portal/ErroCarregamento";
 import { SeletorTempoOverview } from "@/components/portal/SeletorTempoOverview";
@@ -34,7 +36,6 @@ import { apiGet } from "@/lib/api";
 import { useFiltros } from "@/lib/filtros/useFiltros";
 import { formatMoeda } from "@/lib/format";
 import { useMe } from "@/lib/useMe";
-import { cn } from "@/lib/utils";
 import type { Overview } from "@/lib/types";
 
 const TODOS_OS_MESES = Array.from({ length: 12 }, (_, i) => i + 1);
@@ -102,16 +103,12 @@ function DashboardView() {
   const serieRebate = (porVencimento ? data?.serie_rebate_vencimento : data?.serie_mensal) ?? [];
 
   return (
-    <div className="flex flex-col gap-7">
-      {/* Cabeçalho */}
-      <div className="flex flex-wrap items-end justify-between gap-4">
-        <div>
-          <h1 className="text-3xl font-bold tracking-tight">
-            Olá{primeiroNome ? `, ${primeiroNome}` : ""}
-          </h1>
-          <p className="mt-1 text-muted-foreground">Resumo da sua operação de antecipação.</p>
-        </div>
-      </div>
+    <div className="flex flex-col gap-8">
+      <PageHeader
+        eyebrow="Visão geral"
+        titulo={`Olá${primeiroNome ? `, ${primeiroNome}` : ""}`}
+        descricao="Resumo da sua operação de antecipação."
+      />
 
       {/* Recorte temporal (RF-019): meses sempre visíveis; todos = ano inteiro, subconjunto = por mês */}
       <SeletorTempoOverview
@@ -135,7 +132,7 @@ function DashboardView() {
       ) : (
         <>
           {/* KPIs */}
-          <div className="grid grid-cols-2 gap-4 lg:grid-cols-5">
+          <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-5">
             <StatCard
               index={0}
               label="Total de Solicitações"
@@ -174,10 +171,10 @@ function DashboardView() {
           </div>
 
           {/* Solicitações mensais + ticket médio (acompanham este card) */}
-          <div className="grid gap-4 lg:grid-cols-3">
-            <Card className="p-5 lg:col-span-2">
+          <div className="grid gap-5 lg:grid-cols-3">
+            <Card className="p-7 max-sm:p-5 lg:col-span-2">
               <CardHeader className="px-0">
-                <CardTitle className="font-display text-lg font-bold">Solicitações Mensais</CardTitle>
+                <CardTitle className="block-title">Solicitações Mensais</CardTitle>
                 <CardDescription>Soma da originação por mês.</CardDescription>
               </CardHeader>
               <CardContent className="px-0">
@@ -199,31 +196,37 @@ function DashboardView() {
               </CardContent>
             </Card>
 
-            <div className="flex flex-col gap-4">
+            <div className="flex flex-col gap-5">
               <TicketMedio data={data} />
               <Link
                 href="/vencimentos"
-                className="group flex items-center gap-3 rounded-xl bg-card p-4 ring-1 ring-foreground/10 transition-[transform,box-shadow] duration-300 hover:-translate-y-0.5 hover:ring-primary/25"
+                className="surface-card group flex items-center gap-4 p-6 transition-[box-shadow,transform] duration-200 ease-[ease] hover:-translate-y-0.5 hover:shadow-hover"
               >
-                <span className="grid size-9 shrink-0 place-items-center rounded-xl bg-primary/10 text-primary ring-1 ring-primary/15">
-                  <CalendarClock className="size-[18px]" />
+                <span className="icon-tile">
+                  <CalendarClock />
                 </span>
-                <span className="flex-1">
-                  <span className="block text-sm font-medium">Próximos Vencimentos</span>
-                  <span className="block text-xs text-muted-foreground">Acompanhe pagamentos pendentes</span>
+                <span className="min-w-0 flex-1">
+                  <span className="block text-[17px] leading-tight font-semibold text-primary">
+                    Próximos Vencimentos
+                  </span>
+                  <span className="mt-1 block text-[13px] text-muted-foreground">
+                    Acompanhe pagamentos pendentes
+                  </span>
                 </span>
-                <ArrowRight className="size-4 text-muted-foreground transition-transform group-hover:translate-x-0.5" />
+                <span className="grid size-10 shrink-0 place-items-center rounded-[10px] bg-accent text-primary transition-colors duration-150 group-hover:bg-primary group-hover:text-primary-foreground">
+                  <ArrowUpRight className="size-4" strokeWidth={2.2} />
+                </span>
               </Link>
             </div>
           </div>
 
-          {/* Rebate mensal (verde) — abaixo das solicitações, mesmo tamanho (col-span-2).
+          {/* Rebate mensal (roxo-escuro) — abaixo das solicitações, mesmo tamanho (col-span-2).
               O toggle troca a régua do gráfico (agrupamento E recorte): originado no mês
               (`serie_mensal`) ou vencendo no mês (`serie_rebate_vencimento`). */}
-          <div className="grid gap-4 lg:grid-cols-3">
-            <Card className="p-5 lg:col-span-2">
+          <div className="grid gap-5 lg:grid-cols-3">
+            <Card className="p-7 max-sm:p-5 lg:col-span-2">
               <CardHeader className="px-0">
-                <CardTitle className="font-display text-lg font-bold">Rebate Mensal</CardTitle>
+                <CardTitle className="block-title">Rebate Mensal</CardTitle>
                 <CardDescription>
                   {porVencimento
                     ? "Soma do rebate por mês de vencimento."
@@ -268,51 +271,33 @@ function ToggleBaseRebate({
   onBase: (base: BaseRebate) => void;
 }) {
   return (
-    <div
-      role="group"
-      aria-label="Base do gráfico de rebate"
-      className="flex items-center gap-1 rounded-lg bg-muted p-0.5 ring-1 ring-border"
-    >
-      {BASES_REBATE.map(({ id, label }) => {
-        const ativo = base === id;
-        return (
-          <button
-            key={id}
-            type="button"
-            aria-pressed={ativo}
-            onClick={() => onBase(id)}
-            className={cn(
-              "rounded-md px-2.5 py-1 text-xs font-medium transition-colors",
-              ativo
-                ? "bg-card text-primary ring-1 ring-primary/25"
-                : "text-muted-foreground hover:text-foreground",
-            )}
-          >
-            {label}
-          </button>
-        );
-      })}
-    </div>
+    <Segmentado
+      tamanho="sm"
+      ariaLabel="Base do gráfico de rebate"
+      valor={base}
+      onChange={(v) => onBase(v as BaseRebate)}
+      opcoes={BASES_REBATE.map(({ id, label }) => ({ v: id, label }))}
+    />
   );
 }
 
 function TicketMedio({ data }: { data: Overview }) {
   return (
-    <Card className="p-5">
+    <Card className="p-7 max-sm:p-5">
       <CardHeader className="px-0">
-        <CardTitle className="font-display text-lg font-bold">Ticket Médio</CardTitle>
+        <CardTitle className="block-title">Ticket Médio</CardTitle>
         <CardDescription>Média da originação por solicitação no recorte.</CardDescription>
       </CardHeader>
-      <CardContent className="flex flex-col gap-3 px-0">
-        <div className="flex items-center gap-2">
-          <span className="grid size-9 shrink-0 place-items-center rounded-xl bg-primary/10 text-primary ring-1 ring-primary/15">
-            <Receipt className="size-[18px]" />
+      <CardContent className="flex flex-col gap-4 px-0">
+        <div className="flex items-center gap-3.5">
+          <span className="icon-tile">
+            <Receipt />
           </span>
-          <span className="font-display text-2xl font-bold tabular-nums">
+          <span className="text-[28px] leading-none font-semibold tracking-[-0.03em] text-strong tabular-nums">
             {formatMoeda(data.cards.ticket_medio)}
           </span>
         </div>
-        <div className="text-xs text-muted-foreground">
+        <div className="border-t pt-3 text-[13px] text-muted-foreground">
           {data.cards.total_solicitacoes} solicitação(ões) ·{" "}
           <span className="tabular-nums">{formatMoeda(data.cards.valor_total)}</span> originados
         </div>
@@ -323,15 +308,15 @@ function TicketMedio({ data }: { data: Overview }) {
 
 function DashboardSkeleton() {
   return (
-    <div className="flex flex-col gap-7">
-      <div className="grid grid-cols-2 gap-4 lg:grid-cols-5">
+    <div className="flex flex-col gap-8">
+      <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-5">
         {Array.from({ length: 5 }).map((_, i) => (
-          <Skeleton key={i} className="h-[116px] rounded-xl" />
+          <Skeleton key={i} className="h-[148px] rounded-card" />
         ))}
       </div>
-      <div className="grid gap-4 lg:grid-cols-3">
-        <Skeleton className="h-[380px] rounded-xl lg:col-span-2" />
-        <Skeleton className="h-[380px] rounded-xl" />
+      <div className="grid gap-5 lg:grid-cols-3">
+        <Skeleton className="h-[400px] rounded-card lg:col-span-2" />
+        <Skeleton className="h-[400px] rounded-card" />
       </div>
     </div>
   );

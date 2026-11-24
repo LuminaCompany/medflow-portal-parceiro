@@ -12,7 +12,7 @@ export interface ColunaSolic extends Coluna<Solicitacao> {
 
 function CodigoChip({ codigo }: { codigo: string }) {
   return (
-    <span className="inline-flex items-center rounded-md bg-muted px-2 py-0.5 font-mono text-xs font-medium text-foreground/80 ring-1 ring-border/60">
+    <span className="inline-flex items-center rounded-md bg-accent px-2 py-0.5 text-xs font-semibold tracking-[0.02em] text-accent-foreground tabular-nums">
       {codigo}
     </span>
   );

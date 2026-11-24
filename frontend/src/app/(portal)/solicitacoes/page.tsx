@@ -3,6 +3,7 @@
 import { Suspense, useCallback, useEffect, useMemo, useState } from "react";
 import { Search, SlidersHorizontal } from "lucide-react";
 
+import { PageHeader } from "@/components/portal/PageHeader";
 import { BarraFiltros } from "@/components/filtros/BarraFiltros";
 import { DataTable, type OrdemTabela } from "@/components/DataTable";
 import { DetalheSolicitacao } from "@/components/DetalheSolicitacao";
@@ -139,13 +140,16 @@ function SolicitacoesView() {
   }
 
   return (
-    <div className="flex flex-col gap-5">
-      <div>
-        <h1 className="text-3xl font-bold tracking-tight">Solicitações de Antecipação</h1>
-        <p className="mt-1 text-muted-foreground">
-          Filtre, busque e explore {total} solicitaç{total === 1 ? "ão" : "ões"} de recebíveis.
-        </p>
-      </div>
+    <div className="flex flex-col gap-8">
+      <PageHeader
+        eyebrow="Antecipações"
+        titulo="Solicitações de Antecipação"
+        descricao={
+          <>
+            Filtre, busque e explore {total} solicitaç{total === 1 ? "ão" : "ões"} de recebíveis.
+          </>
+        }
+      />
 
       {/* Barra de filtros (chips) + busca + colunas */}
       <div className="flex flex-col gap-3">
@@ -193,7 +197,7 @@ function SolicitacoesView() {
 
       {/* Tabela */}
       {carregando && itens.length === 0 ? (
-        <Skeleton className="h-[420px] rounded-xl" />
+        <Skeleton className="h-[420px] rounded-card" />
       ) : erro && itens.length === 0 ? (
         <ErroCarregamento onRetry={() => buscar(0, false)} mensagem={erro} />
       ) : (
@@ -241,7 +245,7 @@ function SolicitacoesView() {
       <Sheet open={sheetAberto} onOpenChange={setSheetAberto}>
         <SheetContent className="w-full gap-0 overflow-y-auto sm:max-w-md">
           <SheetHeader className="border-b">
-            <SheetTitle className="font-display text-lg font-bold">Detalhe da solicitação</SheetTitle>
+            <SheetTitle>Detalhe da solicitação</SheetTitle>
           </SheetHeader>
           <div className="p-4">
             {detalhe ? (
@@ -255,9 +259,9 @@ function SolicitacoesView() {
               />
             ) : (
               <div className="flex flex-col gap-4">
-                <Skeleton className="h-24 rounded-xl" />
-                <Skeleton className="h-40 rounded-xl" />
-                <Skeleton className="h-40 rounded-xl" />
+                <Skeleton className="h-24 rounded-card" />
+                <Skeleton className="h-40 rounded-card" />
+                <Skeleton className="h-40 rounded-card" />
               </div>
             )}
           </div>
@@ -270,7 +274,7 @@ function SolicitacoesView() {
 export default function SolicitacoesPage() {
   // useSearchParams (em useFiltros) exige fronteira de Suspense no app router.
   return (
-    <Suspense fallback={<Skeleton className="h-[600px] rounded-xl" />}>
+    <Suspense fallback={<Skeleton className="h-[600px] rounded-card" />}>
       <SolicitacoesView />
     </Suspense>
   );
